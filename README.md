@@ -1,4 +1,3 @@
-weave
+Weave
 =====
-
-Weave : Running in YARN is simple as running threads.
+Shouldn't running in YARN be as simple as running threads on JVM.

@@ -25,6 +25,8 @@ testrunner {
  * Specify all the dependencies for smartyFacts & main.
  */
 dependencies {
+  apiCompile libraries.google_guava
+
   compile libraries.hadoop_yarn_api
 
   testCompile libraries.junit

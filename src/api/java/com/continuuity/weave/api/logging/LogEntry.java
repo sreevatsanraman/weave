@@ -8,17 +8,26 @@ import java.util.logging.Level;
  */
 public interface LogEntry {
 
+  enum Level {
+    FATAL,
+    ERROR,
+    WARN,
+    INFO,
+    DEBUG,
+    TRACE
+  }
+
   InetAddress getHost();
 
   long getTimestamp();
 
   Level getLogLevel();
 
-  String getLoggerName();
-
   String getSourceClassName();
 
   String getSourceMethodName();
+
+  String getThreadName();
 
   String getMessage();
 

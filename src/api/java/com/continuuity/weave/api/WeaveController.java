@@ -1,5 +1,7 @@
 package com.continuuity.weave.api;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import java.util.concurrent.Future;
 
 /**
@@ -7,9 +9,9 @@ import java.util.concurrent.Future;
  */
 public interface WeaveController {
 
-  Future<?> stop();
+  RunInfo getRunInfo();
 
-  void stopAndWait();
+  ListenableFuture<?> stop();
 
-  Future<?> sendCommand(Command command);
+  ListenableFuture<?> sendCommand(Command command);
 }

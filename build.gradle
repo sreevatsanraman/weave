@@ -25,6 +25,10 @@ testrunner {
  * Specify all the dependencies for smartyFacts & main.
  */
 dependencies {
+  compile libraries.hadoop_yarn_api
+
+  testCompile libraries.junit
+  testCompile libraries.hadoop_minicluster
 }
 
 /**

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.internal.container;
+package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveContext;
@@ -43,10 +43,10 @@ import java.util.concurrent.Executor;
 /**
  * This class act as a yarn container and run a {@link WeaveRunnable}.
  */
-public final class WeaveContainer implements Service {
+public final class WeaveContainerService implements Service {
 
   private static final int ZK_TIMEOUT = 10000;    // 10 seconds
-  private static final Logger LOG = LoggerFactory.getLogger(WeaveContainer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WeaveContainerService.class);
 
   private final WeaveRunnableSpecification specification;
   private final ClassLoader classLoader;
@@ -56,9 +56,9 @@ public final class WeaveContainer implements Service {
   private final ContainerInfo containerInfo;
   private WeaveRunnable runnable;
 
-  public WeaveContainer(String zkConnectionStr,
-                        WeaveRunnableSpecification specification,
-                        ClassLoader classLoader) throws UnknownHostException {
+  public WeaveContainerService(String zkConnectionStr,
+                               WeaveRunnableSpecification specification,
+                               ClassLoader classLoader) throws UnknownHostException {
     this.specification = specification;
     this.classLoader = classLoader;
     this.runId = RunIds.generate();
@@ -73,7 +73,7 @@ public final class WeaveContainer implements Service {
 
       @Override
       public WeaveRunnableSpecification getSpecification() {
-        return WeaveContainer.this.specification;
+        return WeaveContainerService.this.specification;
       }
     };
   }

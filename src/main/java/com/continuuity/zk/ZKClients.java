@@ -15,9 +15,17 @@
  */
 package com.continuuity.zk;
 
+import com.continuuity.internal.zk.NamespaceZKClient;
+
 /**
  *
  */
-public class ZKClients {
+public final class ZKClients {
 
+  public static ZKClient namespace(ZKClient zkClient, String namespace) {
+    return new NamespaceZKClient(zkClient, namespace);
+  }
+
+  private ZKClients() {
+  }
 }

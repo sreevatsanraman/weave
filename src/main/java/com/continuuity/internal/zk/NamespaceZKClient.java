@@ -20,17 +20,20 @@ import com.continuuity.zk.NodeChildren;
 import com.continuuity.zk.NodeData;
 import com.continuuity.zk.OperationFuture;
 import com.continuuity.zk.ZKClient;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Executor;
 
 /**
 *
 */
 public final class NamespaceZKClient extends ForwardingZKClient {
 
+  private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
   private final String namespace;
 
   public NamespaceZKClient(ZKClient delegate, String namespace) {
@@ -40,67 +43,96 @@ public final class NamespaceZKClient extends ForwardingZKClient {
 
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode) {
-    SettableOperation
-    return super.create(namespace + path, data, createMode);
+    return relayPath(super.create(namespace + path, data, createMode), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode,
                                         boolean createParent) {
-    return super.create(namespace + path, data, createMode, createParent);
+    return relayPath(super.create(namespace + path, data, createMode, createParent), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> exists(String path) {
-    return super.exists(namespace + path);
+    return relayFuture(super.exists(namespace + path), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> exists(String path, @Nullable Watcher watcher) {
-    return super.exists(namespace + path, watcher);
+    return relayFuture(super.exists(namespace + path, watcher), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeChildren> getChildren(String path) {
-    return super.getChildren(namespace + path);
+    return relayFuture(super.getChildren(namespace + path), this.<NodeChildren>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeChildren> getChildren(String path, @Nullable Watcher watcher) {
-    return super.getChildren(namespace + path, watcher);
+    return relayFuture(super.getChildren(namespace + path, watcher), this.<NodeChildren>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeData> getData(String path) {
-    return super.getData(namespace + path);
+    return relayFuture(super.getData(namespace + path), this.<NodeData>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeData> getData(String path, @Nullable Watcher watcher) {
-    return super.getData(namespace + path, watcher);
+    return relayFuture(super.getData(namespace + path, watcher), this.<NodeData>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> setData(String path, byte[] data) {
-    return super.setData(namespace + path, data);
+    return relayFuture(super.setData(namespace + path, data), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> setData(String dataPath, byte[] data, int version) {
-    return super.setData(namespace + dataPath, data, version);
+    return relayFuture(super.setData(namespace + dataPath, data, version), this.<Stat>createFuture(dataPath));
   }
 
   @Override
   public OperationFuture<String> delete(String path) {
-    return super.delete(namespace + path);
+    return relayPath(super.delete(namespace + path), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<String> delete(String deletePath, int version) {
-    return super.delete(namespace + deletePath, version);
+    return relayPath(super.delete(namespace + deletePath, version), this.<String>createFuture(deletePath));
   }
 
-  private String getPath(String path) {
-    return namespace + path;
+  private <V> SettableOperationFuture<V> createFuture(String path) {
+    return SettableOperationFuture.create(namespace + path, SAME_THREAD_EXECUTOR);
+  }
+
+  private <V> OperationFuture<V> relayFuture(final OperationFuture<V> from, final SettableOperationFuture<V> to) {
+    from.addListener(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          to.set(from.get());
+        } catch (Exception e) {
+          to.setException(e);
+        }
+      }
+    }, SAME_THREAD_EXECUTOR);
+    return to;
+  }
+
+  private OperationFuture<String> relayPath(final OperationFuture<String> from,
+                                            final SettableOperationFuture<String> to) {
+    from.addListener(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          String path = from.get();
+          to.set(path.substring(namespace.length()));
+        } catch (Exception e) {
+          to.setException(e);
+        }
+      }
+    }, SAME_THREAD_EXECUTOR);
+    return to;
   }
 }

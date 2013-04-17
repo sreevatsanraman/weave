@@ -20,14 +20,19 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.api.RunIds;
-import com.continuuity.weave.internal.container.WeaveContainerLauncher;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
+import com.continuuity.zk.ZKClients;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -55,6 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +91,8 @@ public final class ApplicationMasterService implements Service {
   private Resource minCapability;
 
 
-  public ApplicationMasterService(String zkConnectStr, File weaveSpecFile) throws IOException {
+  public ApplicationMasterService(RunId runId, String zkConnectStr, File weaveSpecFile) throws IOException {
+    this.runId = runId;
     this.zkConnectStr = zkConnectStr;
     this.weaveSpecFile = weaveSpecFile;
     this.weaveSpec = WeaveSpecificationAdapter.create().fromJson(weaveSpecFile);
@@ -93,7 +100,6 @@ public final class ApplicationMasterService implements Service {
     this.yarnConf = new YarnConfiguration();
     this.launchers = new ConcurrentLinkedQueue<WeaveContainerLauncher>();
 
-    this.runId = RunIds.generate();
     this.serviceDelegate = new ZKServiceDecorator(zkConnectStr, ZK_TIMEOUT, runId,
                                                   createLiveNodeDataSupplier(), new ServiceDelegate());
 
@@ -134,6 +140,7 @@ public final class ApplicationMasterService implements Service {
   }
 
   private void doStop() throws Exception {
+    // TODO: Order the stop sequence in reverse of the start sequence
     for (WeaveContainerLauncher launcher : launchers) {
       launcher.stopAndWait();
     }
@@ -142,79 +149,116 @@ public final class ApplicationMasterService implements Service {
     amrmClient.stop();
   }
 
-
   private void doRun() throws Exception {
-    // Based on the startup sequence, starts the containers
-//    for (WeaveSpecification.Order order : weaveSpec.getOrders()) {
-//      order.getType()
-//    }
 
-    // TODO: We should be able to declare service start sequence
-    final List<RunnableContainerRequest> runtimeSpecs = Lists.newLinkedList();
+    // Orderly stores container requests.
+    Queue<RunnableContainerRequest> runnableRequests = Lists.newLinkedList();
+    for (WeaveSpecification.Order order : weaveSpec.getOrders()) {
 
-    // Simply goes through the spec and create container requests
-    for (Map.Entry<String,RuntimeSpecification> entry : weaveSpec.getRunnables().entrySet()) {
-      RuntimeSpecification runtimeSpec = entry.getValue();
-
-      Resource capability = createCapability(runtimeSpec.getResourceSpecification());
-
-      // TODO: Allow user to set priority?
-      Priority priority = Records.newRecord(Priority.class);
-      priority.setPriority(0);
-
-      AMRMClient.ContainerRequest request = new AMRMClient.ContainerRequest(capability, null, null, priority, 1);
-      amrmClient.addContainerRequest(request);
-
-      runtimeSpecs.add(new RunnableContainerRequest(entry.getValue().getName(), capability));
+      ImmutableMultimap.Builder<Resource, RuntimeSpecification> builder = ImmutableMultimap.builder();
+      for (String runnableName : order.getNames()) {
+        RuntimeSpecification runtimeSpec = weaveSpec.getRunnables().get(runnableName);
+        Resource capability = createCapability(runtimeSpec.getResourceSpecification());
+        builder.put(capability, runtimeSpec);
+      }
+      runnableRequests.add(new RunnableContainerRequest(order.getType(), builder.build()));
     }
 
+    // The main loop
+    Map.Entry<Resource, ? extends Collection<RuntimeSpecification>> currentRequest = null;
+    Queue<ProvisionRequest> provisioning = Lists.newLinkedList();
     while (isRunning()) {
+      // If nothing is in provisioning, and no pending request, move to next one
+      while (provisioning.isEmpty() && currentRequest == null && !runnableRequests.isEmpty()) {
+        currentRequest = runnableRequests.peek().takeRequest();
+        if (currentRequest == null) {
+          // All different types of resource request from current order is done, move to next one
+          // TODO: Need to handle order type as well
+          runnableRequests.poll();
+        }
+      }
+      // Nothing in provision, makes the next batch of provision request
+      if (provisioning.isEmpty() && currentRequest != null) {
+        provisioning.addAll(addContainerRequests(currentRequest.getKey(), currentRequest.getValue()));
+        currentRequest = null;
+      }
+
+      // Now call allocate
       AllocateResponse allocateResponse = amrmClient.allocate(0.0f);
       allocateResponse.getAMResponse().getResponseId();
       AMResponse amResponse = allocateResponse.getAMResponse();
-      List<Container> containers = amResponse.getAllocatedContainers();
 
-      for (final Container container : containers) {
-        LOG.info("Container provisioned: " + container);
-
-        // For each container provisioned, find the request that has the resource capability matched.
-        boolean executed = false;
-        Iterator<RunnableContainerRequest> requestItor = runtimeSpecs.iterator();
-        while (requestItor.hasNext()) {
-          RunnableContainerRequest request = requestItor.next();
-          LOG.info("Requested capability: " + request.getCapability());
-          // TODO: Find way to tie request to resource
-//          if (!container.getResource().equals(request.getCapability())) {
-//            continue;
-//          }
-          requestItor.remove();
-          DefaultProcessLauncher processLauncher = new DefaultProcessLauncher(container, yarnRPC, yarnConf);
-          WeaveContainerLauncher launcher = new WeaveContainerLauncher(weaveSpec, weaveSpecFile, request.getName(),
-                                                                       processLauncher,
-                                                                       getRunnableZKConnectStr(request.getName()));
-          launcher.start();
-          launchers.add(launcher);
-          executed = true;
-          break;
-        }
-
-        if (!executed) {
-          LOG.info("Nothing to run in container, releasing it: " + container);
-          amrmClient.releaseAssignedContainer(container.getId());
-        }
-      }
-
+      // Assign runnable to container
+      launchRunnable(amResponse.getAllocatedContainers(), provisioning);
       TimeUnit.SECONDS.sleep(1);
     }
   }
 
-  private String getRunnableZKConnectStr(String runnableName) {
-    return String.format("%s/%s/runnables/%s", zkConnectStr, runId, runnableName);
+  /**
+   * Adds {@link AMRMClient.ContainerRequest}s with the given resource capability for each runtime.
+   * @param capability
+   * @param runtimeSpecs
+   */
+  private Queue<ProvisionRequest> addContainerRequests(Resource capability,
+                                                       Collection<RuntimeSpecification> runtimeSpecs) {
+    Queue<ProvisionRequest> requests = Lists.newLinkedList();
+    for (RuntimeSpecification runtimeSpec : runtimeSpecs) {
+      // TODO: Allow user to set priority?
+      Priority priority = Records.newRecord(Priority.class);
+      priority.setPriority(0);
+
+      int containerCount = runtimeSpec.getResourceSpecification().getInstances();
+      AMRMClient.ContainerRequest request = new AMRMClient.ContainerRequest(capability, null, null,
+                                                                            priority, containerCount);
+      LOG.info("Request for container: " + request);
+      requests.add(new ProvisionRequest(request, runtimeSpec));
+      amrmClient.addContainerRequest(request);
+    }
+    return requests;
   }
 
-  private ListenableFuture<String> processMessage(Message message) {
-    SettableFuture<String> result = SettableFuture.create();
+  /**
+   * Launches runnables in the provisioned containers.
+   * @param containers
+   * @param provisioning
+   */
+  private void launchRunnable(List<Container> containers, Queue<ProvisionRequest> provisioning) {
+    for (Container container : containers) {
+      ProvisionRequest provisionRequest = provisioning.poll();
+      if (provisionRequest == null) {
+        LOG.info("Nothing to run in container, releasing it: " + container);
+        amrmClient.releaseAssignedContainer(container.getId());
+        continue;
+      }
 
+      String runnableName = provisionRequest.getRuntimeSpec().getName();
+      LOG.info("Starting runnable " + runnableName + " in container " + container);
+      DefaultProcessLauncher processLauncher = new DefaultProcessLauncher(container, yarnRPC, yarnConf);
+      WeaveContainerLauncher launcher = new WeaveContainerLauncher(weaveSpec, weaveSpecFile, runnableName,
+                                                                   RunIds.generate(), processLauncher,
+                                                                   ZKClients.namespace(serviceDelegate.getZKClient(),
+                                                                                       getZKNamespace(runnableName)),
+                                                                   getRunnableZKConnectStr(runnableName));
+      launcher.start();
+      launchers.add(launcher);
+      // Needs to remove it from AMRMClient, otherwise later container requests will get accumulated with completed one
+      // if it has the same priority.
+      // TODO: Need to verify if the mentioned behavior is bug in AMRMClient or is intended usage.
+      amrmClient.removeContainerRequest(provisionRequest.getRequest());
+    }
+  }
+
+  private String getRunnableZKConnectStr(String runnableName) {
+    return String.format("%s%s", zkConnectStr, getZKNamespace(runnableName));
+  }
+
+  private String getZKNamespace(String runnableName) {
+    return String.format("/%s/runnables/%s", runId, runnableName);
+  }
+
+  private ListenableFuture<String> processMessage(String messageId, Message message) {
+    SettableFuture<String> result = SettableFuture.create();
+    // TODO:
     return result;
   }
 
@@ -267,6 +311,10 @@ public final class ApplicationMasterService implements Service {
     serviceDelegate.addListener(listener, executor);
   }
 
+  /**
+   * A private class for service lifecycle. It's done this way so that we can have {@link ZKServiceDecorator} to
+   * wrap around this to reflect status in ZK.
+   */
   private final class ServiceDelegate extends AbstractExecutionThreadService implements MessageCallback {
 
     private volatile Thread runThread;
@@ -277,7 +325,7 @@ public final class ApplicationMasterService implements Service {
       try {
         doRun();
       } catch (InterruptedException e) {
-        // It's ok to get interrupted exception
+        // It's ok to get interrupted exception, as it's a signal to stop
         Thread.currentThread().interrupt();
       }
     }
@@ -301,26 +349,51 @@ public final class ApplicationMasterService implements Service {
     }
 
     @Override
-    public ListenableFuture<String> onReceived(Message message) {
-      return processMessage(message);
+    public ListenableFuture<String> onReceived(String messageId, Message message) {
+      return processMessage(messageId, message);
     }
   }
 
   private static final class RunnableContainerRequest {
-    private final String name;
-    private final Resource capability;
+    private final WeaveSpecification.Order.Type orderType;
+    private final Iterator<Map.Entry<Resource, Collection<RuntimeSpecification>>> requests;
 
-    private RunnableContainerRequest(String name, Resource capability) {
-      this.name = name;
-      this.capability = capability;
+    private RunnableContainerRequest(WeaveSpecification.Order.Type orderType,
+                                     Multimap<Resource, RuntimeSpecification> requests) {
+      this.orderType = orderType;
+      this.requests = requests.asMap().entrySet().iterator();
     }
 
-    private String getName() {
-      return name;
+    private WeaveSpecification.Order.Type getOrderType() {
+      return orderType;
     }
 
-    private Resource getCapability() {
-      return capability;
+    /**
+     * Remove a resource request and returns it.
+     * @return The {@link Resource} and {@link Collection} of {@link RuntimeSpecification} or
+     *         {@code null} if there is no more request.
+     */
+    private Map.Entry<Resource, ? extends Collection<RuntimeSpecification>> takeRequest() {
+      Map.Entry<Resource, Collection<RuntimeSpecification>> next = Iterators.getNext(requests, null);
+      return next == null ? null : Maps.immutableEntry(next.getKey(), ImmutableList.copyOf(next.getValue()));
+    }
+  }
+
+  private static final class ProvisionRequest {
+    private final AMRMClient.ContainerRequest request;
+    private final RuntimeSpecification runtimeSpec;
+
+    private ProvisionRequest(AMRMClient.ContainerRequest request, RuntimeSpecification runtimeSpec) {
+      this.request = request;
+      this.runtimeSpec = runtimeSpec;
+    }
+
+    private AMRMClient.ContainerRequest getRequest() {
+      return request;
+    }
+
+    private RuntimeSpecification getRuntimeSpec() {
+      return runtimeSpec;
     }
   }
 }

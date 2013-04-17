@@ -16,6 +16,8 @@
 package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.internal.ServiceMain;
+import com.continuuity.weave.internal.api.RunIds;
+import com.google.common.base.Preconditions;
 
 import java.io.File;
 import java.util.concurrent.ExecutionException;
@@ -28,11 +30,15 @@ public final class ApplicationMasterMain extends ServiceMain {
 
   /**
    * Starts the application master.
-   * @param args args[0] - ZooKeeper connection string. args[1] - local resource name for spec file.
+   * @param args args[0] - ZooKeeper connection string.
+   *             args[1] - local resource name for spec file.
+   *             args[2] - RunId.
    * @throws ExecutionException
    * @throws InterruptedException
    */
   public static void main(String[] args) throws Exception {
-    new ApplicationMasterMain().doMain(new ApplicationMasterService(args[0], new File(args[1])));
+    Preconditions.checkArgument(args.length >= 2, "Incorrect argument size.");
+    new ApplicationMasterMain().doMain(new ApplicationMasterService(RunIds.fromString(args[2]),
+                                                                    args[0], new File(args[1])));
   }
 }

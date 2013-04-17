@@ -210,6 +210,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
         }
       } catch (YarnRemoteException e) {
         LOG.error("Fail to stop container.", e);
+        throw Throwables.propagate(e);
       }
     }
 

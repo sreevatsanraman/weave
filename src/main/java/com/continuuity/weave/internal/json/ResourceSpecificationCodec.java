@@ -39,6 +39,7 @@ final class ResourceSpecificationCodec implements JsonSerializer<ResourceSpecifi
 
     json.addProperty("cores", src.getCores());
     json.addProperty("memorySize", src.getMemorySize());
+    json.addProperty("instances", src.getInstances());
     json.addProperty("uplink", src.getUplink());
     json.addProperty("downlink", src.getDownlink());
 
@@ -51,6 +52,7 @@ final class ResourceSpecificationCodec implements JsonSerializer<ResourceSpecifi
     JsonObject jsonObj = json.getAsJsonObject();
     return new DefaultResourceSpecification(jsonObj.get("cores").getAsInt(),
                                             jsonObj.get("memorySize").getAsInt(),
+                                            jsonObj.get("instances").getAsInt(),
                                             jsonObj.get("uplink").getAsInt(),
                                             jsonObj.get("downlink").getAsInt());
   }

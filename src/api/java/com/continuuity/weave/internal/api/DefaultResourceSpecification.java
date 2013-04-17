@@ -23,12 +23,14 @@ import com.continuuity.weave.api.ResourceSpecification;
 public final class DefaultResourceSpecification implements ResourceSpecification {
   private final int cores;
   private final int memorySize;
+  private final int instances;
   private final int uplink;
   private final int downlink;
 
-  public DefaultResourceSpecification(int cores, int memorySize, int uplink, int downlink) {
+  public DefaultResourceSpecification(int cores, int memorySize, int instances, int uplink, int downlink) {
     this.cores = cores;
     this.memorySize = memorySize;
+    this.instances = instances;
     this.uplink = uplink;
     this.downlink = downlink;
   }
@@ -41,6 +43,11 @@ public final class DefaultResourceSpecification implements ResourceSpecification
   @Override
   public int getMemorySize() {
     return memorySize;
+  }
+
+  @Override
+  public int getInstances() {
+    return instances;
   }
 
   @Override

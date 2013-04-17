@@ -37,6 +37,10 @@ public final class RunIds {
     return new RunIdImpl(UUID.randomUUID().toString());
   }
 
+  public static RunId fromString(String str) {
+    return new RunIdImpl(UUID.fromString(str).toString());
+  }
+
   private static UUID generateUUIDFromCurrentTime() {
     // Number of 100ns since 15 October 1582 00:00:000000000
     final long NUM_100NS_INTERVALS_SINCE_UUID_EPOCH = 0x01b21dd213814000L;

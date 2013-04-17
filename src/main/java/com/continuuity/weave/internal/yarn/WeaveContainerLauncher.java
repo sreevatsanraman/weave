@@ -15,38 +15,62 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.LocalFile;
+import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
+import com.continuuity.weave.internal.state.Message;
+import com.continuuity.weave.internal.state.Messages;
 import com.continuuity.weave.internal.utils.YarnUtils;
-import com.continuuity.weave.internal.yarn.ProcessLauncher;
+import com.continuuity.zk.ZKClient;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractIdleService;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Map;
 
 /**
  *
  */
-public class WeaveContainerLauncher extends AbstractIdleService {
+public final class WeaveContainerLauncher extends AbstractIdleService {
+
+  private static final Logger LOG = LoggerFactory.getLogger(WeaveContainerLauncher.class);
 
   private final WeaveSpecification weaveSpec;
   private final File weaveSpecFile;
   private final String runnableName;
+  private final RunId runId;
   private final ProcessLauncher processLauncher;
+  private final ZKClient zkClient;
   private final String zkConnectStr;
   private ProcessLauncher.ProcessController controller;
 
   public WeaveContainerLauncher(WeaveSpecification weaveSpec,
                                 File weaveSpecFile,
                                 String runnableName,
+                                RunId runId,
                                 ProcessLauncher processLauncher,
+                                ZKClient zkClient,
                                 String zkConnectStr) {
     this.weaveSpec = weaveSpec;
     this.weaveSpecFile = weaveSpecFile;
     this.runnableName = runnableName;
+    this.runId = runId;
     this.processLauncher = processLauncher;
+    // TODO: This is hacky to pass around a ZKClient like this
+    this.zkClient = zkClient;
     this.zkConnectStr = zkConnectStr;
   }
 
@@ -69,10 +93,11 @@ public class WeaveContainerLauncher extends AbstractIdleService {
 
     controller = moreResources.withCommands()
       .add("java",
-           "com.continuuity.weave.internal.container.WeaveContainerMain",
+           WeaveContainerMain.class.getName(),
            zkConnectStr,
            "weave.spec",
-           runnableName)
+           runnableName,
+           runId.getId())
       .redirectOutput("/tmp/container." + runnableName + ".out")
       .redirectError("/tmp/container." + runnableName + ".err")
       .launch();
@@ -80,7 +105,83 @@ public class WeaveContainerLauncher extends AbstractIdleService {
 
   @Override
   protected void shutDown() throws Exception {
-    controller.stop();
+    // TODO: Not so good to create message and encode it in here
+    // TODO: Also need to unify with WeaveController
+    byte[] data = Messages.encode(new Message() {
+      @Override
+      public Type getType() {
+        return Type.SYSTEM;
+      }
+
+      @Override
+      public Scope getScope() {
+        return Scope.RUNNABLE;
+      }
+
+      @Override
+      public String getRunnableName() {
+        return runnableName;
+      }
+
+      @Override
+      public Command getCommand() {
+        return new Command() {
+          @Override
+          public String getCommand() {
+            return "stop";
+          }
+
+          @Override
+          public Map<String, String> getOptions() {
+            return ImmutableMap.of();
+          }
+        };
+      }
+    });
+
+    final SettableFuture<String> deleteFuture = SettableFuture.create();
+    // TODO: Should be wait for instance node to go away as well.
+    Futures.addCallback(zkClient.create("/" + runId + "/messages/msg", data, CreateMode.PERSISTENT_SEQUENTIAL),
+                        new FutureCallback<String>() {
+                          @Override
+                          public void onSuccess(String result) {
+                            watchDelete(result, deleteFuture);
+                          }
+
+                          @Override
+                          public void onFailure(Throwable t) {
+                            deleteFuture.setException(t);
+                          }
+                        });
+
+    deleteFuture.get();
+
+//    controller.stop();
+  }
+
+  private void watchDelete(final String path, final SettableFuture<String> completion) {
+    Futures.addCallback(zkClient.exists(path, new Watcher() {
+      @Override
+      public void process(WatchedEvent event) {
+        if (event.getType() == Event.EventType.NodeDeleted) {
+          completion.set(path);
+        } else {
+          watchDelete(path, completion);
+        }
+      }
+    }), new FutureCallback<Stat>() {
+      @Override
+      public void onSuccess(Stat result) {
+        if (result == null) {
+          completion.set(path);
+        }
+      }
+
+      @Override
+      public void onFailure(Throwable t) {
+        completion.setException(t);
+      }
+    });
   }
 
   private LocalResource setLocalResourceType(LocalFile localFile, LocalResource localResource) {

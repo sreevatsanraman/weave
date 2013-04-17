@@ -20,18 +20,47 @@ package com.continuuity.weave.api;
  */
 public interface RunInfo {
 
+  enum State {
+
+    /**
+     * A service in this state is inactive. It does minimal work and consumes
+     * minimal resources.
+     */
+    NEW,
+
+    /**
+     * A service in this state is transitioning to {@link #RUNNING}.
+     */
+    STARTING,
+
+    /**
+     * A service in this state is operational.
+     */
+    RUNNING,
+
+    /**
+     * A service in this state is transitioning to {@link #TERMINATED}.
+     */
+    STOPPING,
+
+    /**
+     * A service in this state has completed execution normally. It does minimal work and consumes
+     * minimal resources.
+     */
+    TERMINATED,
+
+    /**
+     * A service in this state has encountered a problem and may not be operational. It cannot be
+     * started nor stopped.
+     */
+    FAILED
+  }
+
   /**
-   * Returns an unique id representing the running {@link WeaveRunnable}.
+   * Returns an unique id representing the running {@link WeaveApplication}.
    * @return An unique id
    */
   RunId getId();
 
-  /**
-   * Returns the {@link WeaveRunnableSpecification} returned from
-   * the {@link com.continuuity.weave.api.WeaveRunnable#configure()} method.
-   * @return A {@link WeaveRunnableSpecification} instance.
-   */
-  WeaveRunnableSpecification getSpecification();
-
-  ResourceSpecification getResourceSpecification();
+  State getState();
 }

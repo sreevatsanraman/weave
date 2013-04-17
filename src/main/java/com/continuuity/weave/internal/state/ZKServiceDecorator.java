@@ -90,6 +90,12 @@ public final class ZKServiceDecorator extends AbstractService {
     }
   }
 
+  /**
+   * Returns the {@link ZKClient} used by this decorator.
+   * @return
+   *
+   * TODO: This method is a bit hacky. Need to find a better way to share a ZK connection between different components.
+   */
   public ZKClient getZKClient() {
     return new ForwardingZKClient(zkClient) {
     };
@@ -105,7 +111,7 @@ public final class ZKServiceDecorator extends AbstractService {
       public void onSuccess(State result) {
         // Create nodes for states and messaging
         JsonObject stateContent = new JsonObject();
-        stateContent.addProperty("state", "IDLE");
+        stateContent.addProperty("state", "NEW");
         createMessagesNode();
         final OperationFuture<String> stateFuture = zkClient.create(getZKPath("state"), encode(stateContent),
                                                               CreateMode.PERSISTENT);
@@ -182,7 +188,10 @@ public final class ZKServiceDecorator extends AbstractService {
     Futures.addCallback(zkClient.getChildren(messagesPath, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
-        watchMessages();
+        // TODO: Do we need to deal with other type of events?
+        if (event.getType() == Event.EventType.NodeChildrenChanged) {
+          watchMessages();
+        }
       }
     }), new FutureCallback<NodeChildren>() {
       @Override
@@ -206,13 +215,29 @@ public final class ZKServiceDecorator extends AbstractService {
   private void processMessage(final String path, final String messageId) {
     Futures.addCallback(zkClient.getData(path), new FutureCallback<NodeData>() {
       @Override
-      public void onSuccess(NodeData result) {
-        byte[] data = result.getData();
-        if (data == null) {
-          LOG.error("Empty message content for " + messageId + " in " + path);
+      public void onSuccess(final NodeData result) {
+        Message message = Messages.decode(result.getData());
+        if (message == null) {
+          LOG.error("Failed to decode message for " + messageId + " in " + path);
+          listenFailure(zkClient.delete(path, result.getStat().getVersion()));
           return;
         }
-        messageCallback.onReceived(callbackExecutor, path, messageId, result.getStat().getVersion(), data);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Message received from " + path + ": " + new String(Messages.encode(message), Charsets.UTF_8));
+        }
+        if (message.getType() == Message.Type.SYSTEM) {
+          if ("stop".equalsIgnoreCase(message.getCommand().getCommand())) {
+            decoratedService.stop().addListener(new Runnable() {
+
+              @Override
+              public void run() {
+                stopServiceOnComplete(zkClient.delete(path, result.getStat().getVersion()), ZKServiceDecorator.this);
+              }
+            }, MoreExecutors.sameThreadExecutor());
+          }
+          return;
+        }
+        messageCallback.onReceived(callbackExecutor, path, result.getStat().getVersion(), messageId, message);
       }
 
       @Override
@@ -268,14 +293,8 @@ public final class ZKServiceDecorator extends AbstractService {
     }
 
     public void onReceived(Executor executor, final String path,
-                           final String id, final int version, final byte[] data) {
+                           final int version, final String id, final Message message) {
       if (callback == null) {
-        return;
-      }
-      final Message message = Messages.decode(data);
-      if (message == null) {
-        LOG.warn("Failed to decode message for " + id + " in " + path + ". Message ignored.");
-        listenFailure(zkClient.delete(path, version));
         return;
       }
 
@@ -283,7 +302,7 @@ public final class ZKServiceDecorator extends AbstractService {
 
         @Override
         public void run() {
-          Futures.addCallback(callback.onReceived(message), new FutureCallback<String>() {
+          Futures.addCallback(callback.onReceived(id, message), new FutureCallback<String>() {
             @Override
             public void onSuccess(String result) {
               // Delete the message node when processing is completed successfully.
@@ -392,14 +411,14 @@ public final class ZKServiceDecorator extends AbstractService {
         }
       }, SAME_THREAD_EXECUTOR);
     }
+  }
 
-    private <V> ListenableFuture<State> stopServiceOnComplete(ListenableFuture <V> future, final Service service) {
-      return Futures.transform(future, new AsyncFunction<V, State>() {
-        @Override
-        public ListenableFuture<State> apply(V input) throws Exception {
-          return service.stop();
-        }
-      });
-    }
+  private <V> ListenableFuture<State> stopServiceOnComplete(ListenableFuture <V> future, final Service service) {
+    return Futures.transform(future, new AsyncFunction<V, State>() {
+      @Override
+      public ListenableFuture<State> apply(V input) throws Exception {
+        return service.stop();
+      }
+    });
   }
 }

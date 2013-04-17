@@ -19,7 +19,6 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnable;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
-import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
@@ -51,17 +50,16 @@ public final class WeaveContainerService implements Service {
   private final WeaveRunnableSpecification specification;
   private final ClassLoader classLoader;
   private final WeaveContext context;
-  private final RunId runId;
   private final ZKServiceDecorator serviceDelegate;
   private final ContainerInfo containerInfo;
   private WeaveRunnable runnable;
 
   public WeaveContainerService(String zkConnectionStr,
+                               RunId runId,
                                WeaveRunnableSpecification specification,
                                ClassLoader classLoader) throws UnknownHostException {
     this.specification = specification;
     this.classLoader = classLoader;
-    this.runId = RunIds.generate();
     this.serviceDelegate = new ZKServiceDecorator(zkConnectionStr, ZK_TIMEOUT, runId,
                                                   createLiveNodeSupplier(), new ServiceDelegate());
     this.containerInfo = new ContainerInfo();
@@ -78,7 +76,7 @@ public final class WeaveContainerService implements Service {
     };
   }
 
-  private ListenableFuture<String> processMessage(Message message) {
+  private ListenableFuture<String> processMessage(String messageId, Message message) {
     SettableFuture<String> result = SettableFuture.create();
 
     return result;
@@ -133,8 +131,6 @@ public final class WeaveContainerService implements Service {
 
   private final class ServiceDelegate extends AbstractExecutionThreadService implements MessageCallback {
 
-    private volatile Thread runThread;
-
     @Override
     protected void startUp() throws Exception {
       Class<?> runnableClass = classLoader.loadClass(specification.getClassName());
@@ -146,7 +142,7 @@ public final class WeaveContainerService implements Service {
     }
 
     @Override
-    protected void shutDown() throws Exception {
+    protected void triggerShutdown() {
       try {
         runnable.stop();
       } catch (Throwable t) {
@@ -155,22 +151,13 @@ public final class WeaveContainerService implements Service {
     }
 
     @Override
-    protected void triggerShutdown() {
-      Thread runThread = this.runThread;
-      if (runThread != null) {
-        runThread.interrupt();
-      }
-    }
-
-    @Override
     protected void run() throws Exception {
-      runThread = Thread.currentThread();
       runnable.run();
     }
 
     @Override
-    public ListenableFuture<String> onReceived(Message message) {
-      return processMessage(message);
+    public ListenableFuture<String> onReceived(String messageId, Message message) {
+      return processMessage(messageId, message);
     }
   }
 

@@ -22,13 +22,18 @@ import com.continuuity.weave.api.Command;
  */
 public interface Message {
 
+  enum Type {
+    SYSTEM,
+    USER
+  }
+
   enum Scope {
     APPLICATION,
     ALL_RUNNABLE,
     RUNNABLE
   }
 
-  String getId();
+  Type getType();
 
   Scope getScope();
 

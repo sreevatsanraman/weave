@@ -15,11 +15,9 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.RunId;
-import com.continuuity.weave.api.RunInfo;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveApplication;
 import com.continuuity.weave.api.WeaveController;
@@ -32,8 +30,12 @@ import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.api.DefaultLocalFile;
 import com.continuuity.weave.internal.api.DefaultWeaveRunnableSpecification;
 import com.continuuity.weave.internal.api.DefaultWeaveSpecification;
+import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
+import com.continuuity.zk.RetryStrategies;
+import com.continuuity.zk.ZKClientService;
+import com.continuuity.zk.ZKClientServices;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -42,12 +44,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import com.google.common.io.LineReader;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -143,11 +146,13 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
           ContainerLaunchContext containerLaunchContext = Records.newRecord(ContainerLaunchContext.class);
           containerLaunchContext.setLocalResources(localResources);
 
+          RunId runId = RunIds.generate();
           containerLaunchContext.setCommands(
             ImmutableList.of("java",
                              ApplicationMasterMain.class.getName(),
                              zkConnectStr,
                              "weaveSpec.json",
+                             runId.getId(),
                              "1>/tmp/out", "2>/tmp/err"));
 
           // TODO
@@ -162,41 +167,42 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
           final LogPoller logPoller = new LogPoller(weaveSpec, logHandlers);
           logPoller.start();
 
-          return new WeaveController() {
-            @Override
-            public RunInfo getRunInfo() {
-              return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override
-            public void addLogHandler(LogHandler handler) {
-              //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override
-            public ListenableFuture<?> stop() {
-              for (Closeable closeable : resourceCleaner) {
-                Closeables.closeQuietly(closeable);
-              }
-              logPoller.stopAndWait();
-              return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override
-            public ListenableFuture<?> sendCommand(Command command) {
-              return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override
-            public boolean waitFor(long timeout, TimeUnit timeoutUnit) throws InterruptedException {
-              // TODO: Hack
-              timeoutUnit.sleep(timeout);
-              return true;
-            }
-          };
+          return createController(runId);
         } catch (Exception e) {
           throw Throwables.propagate(e);
         }
+      }
+    };
+  }
+
+  private WeaveController createController(RunId runId) {
+    final ZKClientService zkClient = ZKClientServices.reWatchOnExpire(
+      ZKClientServices.retryOnFailure(
+        ZKClientService.Builder.of(zkConnectStr).setSessionTimeout(10000).build(),
+        RetryStrategies.fixDelay(2, TimeUnit.SECONDS)));
+
+    zkClient.start();
+    return new ZKWeaveController(zkClient, runId) {
+      @Override
+      public ListenableFuture<?> stop() {
+        final SettableFuture<String> result = SettableFuture.create();
+        final ListenableFuture<?> future = super.stop();
+        future.addListener(new Runnable() {
+          @Override
+          public void run() {
+            zkClient.stop().addListener(new Runnable() {
+              @Override
+              public void run() {
+                try {
+                  result.set(future.get().toString());
+                } catch (Exception e) {
+                  result.setException(e);
+                }
+              }
+            }, MoreExecutors.sameThreadExecutor());
+          }
+        }, MoreExecutors.sameThreadExecutor());
+        return result;
       }
     };
   }

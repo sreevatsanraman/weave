@@ -3,6 +3,7 @@ package com.continuuity.weave;
 import com.continuuity.weave.api.AbstractWeaveRunnable;
 import com.continuuity.weave.api.WeaveContext;
 import com.google.common.base.Charsets;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ public final class EchoServer extends AbstractWeaveRunnable {
 
   private volatile boolean running;
   private volatile Thread runThread;
+  private ServerSocket serverSocket;
 
   public EchoServer(int port) {
     super(ImmutableMap.of("port", Integer.toString(port)));
@@ -33,14 +35,17 @@ public final class EchoServer extends AbstractWeaveRunnable {
   public void initialize(WeaveContext context) {
     super.initialize(context);
     running = true;
+    try {
+      serverSocket = new ServerSocket(Integer.parseInt(getArgument("port")));
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
   }
 
   @Override
   public void run() {
     try {
       runThread = Thread.currentThread();
-      ServerSocket serverSocket = new ServerSocket(Integer.parseInt(getArgument("port")));
-
       while (running) {
         Socket socket = serverSocket.accept();
         BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), Charsets.UTF_8));
@@ -66,10 +71,16 @@ public final class EchoServer extends AbstractWeaveRunnable {
 
   @Override
   public void stop() {
+    LOG.info("Stopping echo server");
     running = false;
     Thread t = runThread;
     if (t != null) {
       t.interrupt();
+    }
+    try {
+      serverSocket.close();
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
     }
   }
 }

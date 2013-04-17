@@ -60,6 +60,12 @@ public interface ResourceSpecification {
   int getDownlink();
 
   /**
+   * Returns number of execution instances.
+   * @return Number of execution instances.
+   */
+  int getInstances();
+
+  /**
    * Builder for creating {@link ResourceSpecification}.
    */
   static final class Builder {
@@ -68,6 +74,7 @@ public interface ResourceSpecification {
     private int memory;
     private int uplink = -1;
     private int downlink = -1;
+    private int instances = 1;
 
     public static CoreSetter with() {
       return new Builder().new CoreSetter();
@@ -88,15 +95,16 @@ public interface ResourceSpecification {
     }
 
     public final class AfterMemory extends Build {
+      public AfterInstances setInstances(int instances) {
+        Builder.this.instances = instances;
+        return new AfterInstances();
+      }
+    }
+
+    public final class AfterInstances extends Build {
       public AfterUplink setUplink(int uplink, SizeUnit unit) {
         Builder.this.uplink = uplink * unit.multiplier;
         return new AfterUplink();
-      }
-
-      @Override
-      public ResourceSpecification build() {
-        // The override is just to make IDE shows better suggestion, as it thoughts this class define the build method.
-        return super.build();
       }
     }
 
@@ -104,11 +112,6 @@ public interface ResourceSpecification {
       public AfterDownlink setDownlink(int downlink, SizeUnit unit) {
         Builder.this.downlink = downlink * unit.multiplier;
         return new AfterDownlink();
-      }
-
-      @Override
-      public ResourceSpecification build() {
-        return super.build();
       }
     }
 
@@ -122,7 +125,7 @@ public interface ResourceSpecification {
 
     public abstract class Build {
       public ResourceSpecification build() {
-        return new DefaultResourceSpecification(cores, memory, uplink, downlink);
+        return new DefaultResourceSpecification(cores, memory, instances, uplink, downlink);
       }
     }
 

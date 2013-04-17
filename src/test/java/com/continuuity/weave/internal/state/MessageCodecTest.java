@@ -17,8 +17,8 @@ public class MessageCodecTest {
     Message message = Messages.decode(Messages.encode(new Message() {
 
       @Override
-      public String getId() {
-        return "message-id";
+      public Type getType() {
+        return Type.SYSTEM;
       }
 
       @Override
@@ -47,7 +47,7 @@ public class MessageCodecTest {
       }
     }));
 
-    Assert.assertEquals("message-id", message.getId());
+    Assert.assertEquals(Message.Type.SYSTEM, message.getType());
     Assert.assertEquals(Message.Scope.APPLICATION, message.getScope());
     Assert.assertNull(message.getRunnableName());
     Assert.assertEquals("stop", message.getCommand().getCommand());

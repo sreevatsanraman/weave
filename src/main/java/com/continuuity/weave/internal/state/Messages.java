@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  *
  */
-final class Messages {
+public final class Messages {
 
   private static final Type OPTIONS_TYPE = new TypeToken<Map<String, String>>() {}.getType();
 
@@ -43,7 +43,7 @@ final class Messages {
    * @param bytes
    * @return
    */
-  static Message decode(byte[] bytes) {
+  public static Message decode(byte[] bytes) {
     if (bytes == null) {
       return null;
     }
@@ -54,7 +54,7 @@ final class Messages {
   }
 
 
-  static byte[] encode(Message message) {
+  public static byte[] encode(Message message) {
     return new GsonBuilder().registerTypeAdapter(Message.class, new MessageCodec())
                             .create()
                             .toJson(message, Message.class)
@@ -68,12 +68,11 @@ final class Messages {
     public Message deserialize(JsonElement json, Type typeOfT,
                                JsonDeserializationContext context) throws JsonParseException {
       JsonObject jsonObj = json.getAsJsonObject();
-      final String id = jsonObj.get("id").getAsString();
+      final Message.Type type = Message.Type.valueOf(jsonObj.get("type").getAsString());
       final Message.Scope scope = Message.Scope.valueOf(jsonObj.get("scope").getAsString());
       JsonElement name = jsonObj.get("runnableName");
       final String runnableName = (name == null || name.isJsonNull()) ? null :name.getAsString();
-
-        JsonObject commandObj = jsonObj.get("command").getAsJsonObject();
+      JsonObject commandObj = jsonObj.get("command").getAsJsonObject();
       final String commandName = commandObj.get("command").getAsString();
       final Map<String, String> options = ImmutableMap.copyOf(
                           context.<Map<String, String>>deserialize(commandObj.get("options"), OPTIONS_TYPE));
@@ -90,8 +89,8 @@ final class Messages {
       };
       return new Message() {
         @Override
-        public String getId() {
-          return id;
+        public Type getType() {
+          return type;
         }
 
         @Override
@@ -114,7 +113,7 @@ final class Messages {
     @Override
     public JsonElement serialize(Message message, Type typeOfSrc, JsonSerializationContext context) {
       JsonObject jsonObj = new JsonObject();
-      jsonObj.addProperty("id", message.getId());
+      jsonObj.addProperty("type", message.getType().name());
       jsonObj.addProperty("scope", message.getScope().name());
       jsonObj.addProperty("runnableName", message.getRunnableName());
 

@@ -1,7 +1,9 @@
 package com.continuuity.weave;
 
+import com.continuuity.weave.api.WeaveApplication;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.WeaveRunnerService;
+import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
 import com.continuuity.weave.internal.yarn.YarnWeaveRunnerService;
 import com.continuuity.weave.zk.InMemoryZKServer;
@@ -15,6 +17,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.PrintWriter;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,9 +25,19 @@ import java.util.concurrent.TimeUnit;
  */
 public class EchoServerTest {
 
+//  private static final class TestApp implements WeaveApplication {
+//
+//    @Override
+//    public WeaveSpecification configure() {
+//      return WeaveSpecification.Builder.with()
+//        .setName("Test")
+//        .withRunnable().add(new EchoServer(12345))
+//    }
+//  }
+
   @Ignore
   @Test
-  public void testEchoServer() throws InterruptedException {
+  public void testEchoServer() throws InterruptedException, ExecutionException {
     WeaveRunnerService weaveRunner = new YarnWeaveRunnerService(new YarnConfiguration(),
                                                                 zkServer.getConnectionStr() + "/weave");
     weaveRunner.startAndWait();
@@ -32,8 +45,10 @@ public class EchoServerTest {
     WeaveController controller = weaveRunner.prepare(new EchoServer(54321))
                                             .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
                                             .start();
-    controller.waitFor(30, TimeUnit.MINUTES);
-    controller.stop();
+//    controller.waitFor(30, TimeUnit.MINUTES);
+    System.out.println("Stopping");
+    controller.stop().get();
+    System.out.println("Stopped");
   }
 
   @Before

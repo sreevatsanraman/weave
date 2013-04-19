@@ -22,7 +22,9 @@ import com.continuuity.zookeeper.DiscoveryServiceClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -31,10 +33,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AbstractIdleService;
+import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Service;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -56,6 +60,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -93,7 +98,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * </p>
  */
 @Singleton
-public class ZKDiscoveryService extends AbstractIdleService implements DiscoveryService, DiscoveryServiceClient {
+public class ZKDiscoveryService extends AbstractService implements DiscoveryService, DiscoveryServiceClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZKDiscoveryService.class);
   private static final String NAMESPACE = "/discoverable";
   private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
@@ -117,22 +122,43 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
    * @param namespace under which the service registered would be stored in zookeeper.
    */
   public ZKDiscoveryService(String zkConnectionString, String namespace) {
-    client = ZKClientService.Builder.of(zkConnectionString).build();
+    client = ZKClientServices.reWatchOnExpire(
+      ZKClientServices.retryOnFailure(ZKClientService.Builder.of(zkConnectionString).build(),
+                                      RetryStrategies.fixDelay(2, TimeUnit.SECONDS)));
     this.namespace = namespace;
     services = new AtomicReference<Multimap<String, Discoverable>>();
     serviceWatched = Maps.newConcurrentMap();
   }
 
   @Override
-  protected void startUp() throws Exception {
-    client.startAndWait();
-    Multimap<String, Discoverable> mappings = HashMultimap.create();
-    services.set(mappings);
+  protected void doStart() {
+    services.set(HashMultimap.<String, Discoverable>create());
+    Futures.addCallback(client.start(), new FutureCallback<State>() {
+      @Override
+      public void onSuccess(State result) {
+        notifyStarted();
+      }
+
+      @Override
+      public void onFailure(Throwable t) {
+        notifyFailed(t);
+      }
+    });
   }
 
   @Override
-  protected void shutDown() throws Exception {
-    client.stopAndWait();
+  protected void doStop() {
+    Futures.addCallback(client.stop(), new FutureCallback<State>() {
+      @Override
+      public void onSuccess(State result) {
+        notifyStopped();
+      }
+
+      @Override
+      public void onFailure(Throwable t) {
+        notifyFailed(t);
+      }
+    });
   }
 
   /**

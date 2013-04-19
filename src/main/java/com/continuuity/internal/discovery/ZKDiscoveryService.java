@@ -25,13 +25,16 @@ import com.continuuity.zookeeper.OperationFuture;
 import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -50,7 +53,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
+import java.util.List;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -91,7 +96,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ZKDiscoveryService extends AbstractIdleService implements DiscoveryService, DiscoveryServiceClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZKDiscoveryService.class);
   private static final String NAMESPACE = "/discoverable";
+  private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
+
   private final AtomicReference<Multimap<String, Discoverable>> services;
+  private final ConcurrentMap<String, Boolean> serviceWatched;
   private final ZKClientService client;
   private final String namespace;
 
@@ -112,6 +120,7 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
     client = ZKClientService.Builder.of(zkConnectionString).build();
     this.namespace = namespace;
     services = new AtomicReference<Multimap<String, Discoverable>>();
+    serviceWatched = Maps.newConcurrentMap();
   }
 
   @Override
@@ -147,26 +156,14 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
 
     // Path <discoverable-base>/<service-name>
     final String sb = namespace + "/" + wrapper.getName() + "/service-";
-
-    try {
-      final String path = client.create(sb, discoverableBytes, CreateMode.EPHEMERAL_SEQUENTIAL, true).get();
-      return new Cancellable() {
-        @Override
-        public void cancel() {
-          try {
-            if(client.exists(path).get() != null) {
-              client.delete(path).get();
-            }
-          } catch(Exception e) {
-            throw Throwables.propagate(e);
-          }
-        }
-      };
-    } catch (InterruptedException e) {
-      throw Throwables.propagate(e);
-    } catch (ExecutionException e) {
-      throw Throwables.propagate(e);
-    }
+    final String path = Futures.getUnchecked(client.create(sb, discoverableBytes,
+                                                           CreateMode.EPHEMERAL_SEQUENTIAL, true));
+    return new Cancellable() {
+      @Override
+      public void cancel() {
+        Futures.getUnchecked(client.delete(path));
+      }
+    };
   }
 
   /**
@@ -181,7 +178,7 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
   private void getChildren(final String service) {
     final String sb = namespace + "/" + service;
 
-    if(! client.isRunning()) {
+    if(!client.isRunning()) {
       return;
     }
 
@@ -189,11 +186,7 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
       @Override
       public void process(WatchedEvent event) {
         if(event.getType() == Event.EventType.NodeChildrenChanged) {
-          try {
-            getChildren(service);
-          } catch (Exception e) {
-            throw Throwables.propagate(e);
-          }
+          getChildren(service);
         }
       }
     });
@@ -201,21 +194,34 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
     Futures.addCallback(nodeChildren, new FutureCallback<NodeChildren>() {
       @Override
       public void onSuccess(NodeChildren children) {
-        Multimap<String, Discoverable> newServices = HashMultimap.create(services.get());
+        final Multimap<String, Discoverable> newServices = HashMultimap.create(services.get());
         newServices.removeAll(service);
+
+        // Fetch data of all children nodes in parallel.
+        List<OperationFuture<NodeData>> dataFutures = Lists.newArrayListWithCapacity(children.getChildren().size());
         for(String child : children.getChildren()) {
-          try {
-            String path = sb + "/" + child;
-            if(client.exists(path).get() != null) {
-              NodeData data = client.getData(path).get();
-              newServices.put(service, decode(data.getData()));
-            }
-          } catch (Exception e) {
-            throw Throwables.propagate(e);
-          }
+          String path = sb + "/" + child;
+          dataFutures.add(client.getData(path));
         }
-        // Replace the local service register with changes.
-        services.set(newServices);
+
+        // Update the service map when all fetching are done.
+        final ListenableFuture<List<NodeData>> fetchFuture = Futures.successfulAsList(dataFutures);
+        fetchFuture.addListener(new Runnable() {
+          @Override
+          public void run() {
+            for (NodeData nodeData : Futures.getUnchecked(fetchFuture)) {
+              // For successful fetch, decode the content.
+              if (nodeData != null) {
+                Discoverable discoverable = decode(nodeData.getData());
+                if (discoverable != null) {
+                  newServices.put(service, discoverable);
+                }
+              }
+            }
+            // Replace the local service register with changes.
+            services.set(newServices);
+          }
+        }, SAME_THREAD_EXECUTOR);
       }
 
       @Override
@@ -234,13 +240,13 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
   @Override
   public Iterable<Discoverable> discover(final String service) {
     Preconditions.checkState(isRunning(), "Service is not running");
+    if (serviceWatched.putIfAbsent(service, true) == null) {
+      getChildren(service);
+    }
     return new Iterable<Discoverable>() {
       @Override
       public Iterator<Discoverable> iterator() {
         Preconditions.checkState(isRunning(), "Service is not running");
-        if(! services.get().containsKey(service)) {
-          getChildren(service);
-        }
         return ImmutableList.copyOf(services.get().get(service)).iterator();
       }
     };
@@ -251,14 +257,14 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
    * @param bytes representing serialized {@link DiscoverableWrapper}
    * @return null if bytes are null; else an instance of {@link DiscoverableWrapper}
    */
-  static DiscoverableWrapper decode(byte[] bytes) {
+  private static Discoverable decode(byte[] bytes) {
     if (bytes == null) {
       return null;
     }
     String content = new String(bytes, Charsets.UTF_8);
-    return new GsonBuilder().registerTypeAdapter(DiscoverableWrapper.class, new DiscoverableCodec())
+    return new GsonBuilder().registerTypeAdapter(Discoverable.class, new DiscoverableCodec())
       .create()
-      .fromJson(content, DiscoverableWrapper.class);
+      .fromJson(content, Discoverable.class);
   }
 
   /**
@@ -266,7 +272,7 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
    * @param discoverable An instance of {@link DiscoverableWrapper}
    * @return array of bytes representing an instance of <code>discoverable</code>
    */
-  static byte[] encode(Discoverable discoverable) {
+  private static byte[] encode(Discoverable discoverable) {
     return new GsonBuilder().registerTypeAdapter(DiscoverableWrapper.class, new DiscoverableCodec())
       .create()
       .toJson(discoverable, DiscoverableWrapper.class)
@@ -278,32 +284,31 @@ public class ZKDiscoveryService extends AbstractIdleService implements Discovery
    * or from a JSON object into {@link DiscoverableWrapper}.
    */
   private static final class DiscoverableCodec
-    implements JsonSerializer<DiscoverableWrapper>, JsonDeserializer<DiscoverableWrapper> {
+    implements JsonSerializer<Discoverable>, JsonDeserializer<Discoverable> {
 
     @Override
-    public DiscoverableWrapper deserialize(JsonElement json, Type typeOfT,
-                                           JsonDeserializationContext context) throws JsonParseException {
+    public Discoverable deserialize(JsonElement json, Type typeOfT,
+                                    JsonDeserializationContext context) throws JsonParseException {
       JsonObject jsonObj = json.getAsJsonObject();
       final String service = jsonObj.get("service").getAsString();
-      final String hostname = jsonObj.get("hostname").getAsString();
-      final int port = jsonObj.get("port").getAsInt();
-      return new DiscoverableWrapper(
-        new Discoverable() {
-          @Override
-          public String getName() {
-            return service;
-          }
-
-          @Override
-          public InetSocketAddress getSocketAddress() {
-            return new InetSocketAddress(hostname, port);
-          }
+      String hostname = jsonObj.get("hostname").getAsString();
+      int port = jsonObj.get("port").getAsInt();
+      final InetSocketAddress address = new InetSocketAddress(hostname, port);
+      return new Discoverable() {
+        @Override
+        public String getName() {
+          return service;
         }
-      );
+
+        @Override
+        public InetSocketAddress getSocketAddress() {
+          return address;
+        }
+      };
     }
 
     @Override
-    public JsonElement serialize(DiscoverableWrapper src, Type typeOfSrc, JsonSerializationContext context) {
+    public JsonElement serialize(Discoverable src, Type typeOfSrc, JsonSerializationContext context) {
       JsonObject jsonObj = new JsonObject();
       jsonObj.addProperty("service", src.getName());
       jsonObj.addProperty("hostname", src.getSocketAddress().getHostName());

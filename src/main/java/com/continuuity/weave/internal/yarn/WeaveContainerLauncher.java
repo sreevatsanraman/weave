@@ -23,7 +23,7 @@ import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCodec;
 import com.continuuity.weave.internal.utils.YarnUtils;
-import com.continuuity.zk.ZKClient;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;

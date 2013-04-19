@@ -15,9 +15,9 @@
  */
 package com.continuuity.internal.kafka.client;
 
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.ZKClientService;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;

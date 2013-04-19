@@ -14,22 +14,14 @@
  *   the License.
  */
 
-package com.continuuity.weave.api.zookeeper;
-
-import java.net.InetSocketAddress;
+package com.continuuity.zookeeper;
 
 /**
- * Discoverable defines the attributes of service to be discovered.
+ * Something, usually a task, that can be cancelled. Cancellation is performed by the cancel method.
  */
-public interface Discoverable {
-
+public interface Cancellable {
   /**
-   * @return Name of the service
+   * Attempts to cancel execution of this task.
    */
-  String getName();
-
-  /**
-   * @return An {@link InetSocketAddress} representing the host+port of the service.
-   */
-  InetSocketAddress getSocketAddress();
+  void cancel();
 }

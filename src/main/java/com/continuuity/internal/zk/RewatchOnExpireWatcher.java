@@ -15,9 +15,9 @@
  */
 package com.continuuity.internal.zk;
 
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.ZKClientService;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import org.apache.zookeeper.KeeperException;

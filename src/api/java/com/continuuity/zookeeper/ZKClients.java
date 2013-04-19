@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,25 +13,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.zk;
+package com.continuuity.zookeeper;
 
-import org.apache.zookeeper.data.Stat;
-
-import javax.annotation.Nullable;
+import com.continuuity.internal.zk.NamespaceZKClient;
 
 /**
- * Represents result of call to {@link com.continuuity.zk.ZKClientService#getData(String, org.apache.zookeeper.Watcher)}.
+ *
  */
-public interface NodeData {
+public final class ZKClients {
 
-  /**
-   * @return The {@link Stat} of the node.
-   */
-  Stat getStat();
+  public static ZKClient namespace(ZKClient zkClient, String namespace) {
+    return new NamespaceZKClient(zkClient, namespace);
+  }
 
-  /**
-   * @return Data stored in the node, or {@code null} if there is no data.
-   */
-  @Nullable
-  byte[] getData();
+  private ZKClients() {
+  }
 }

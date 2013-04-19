@@ -1,10 +1,10 @@
 package com.continuuity.weave.zk;
 
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.OperationFuture;
-import com.continuuity.zk.RetryStrategies;
-import com.continuuity.zk.ZKClientService;
-import com.continuuity.zk.ZKClientServices;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.RetryStrategies;
+import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

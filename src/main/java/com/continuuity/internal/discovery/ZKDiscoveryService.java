@@ -15,14 +15,14 @@
  */
 package com.continuuity.internal.discovery;
 
-import com.continuuity.weave.api.zookeeper.Cancellable;
-import com.continuuity.weave.api.zookeeper.Discoverable;
-import com.continuuity.weave.api.zookeeper.DiscoveryService;
-import com.continuuity.weave.api.zookeeper.DiscoveryServiceClient;
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.OperationFuture;
-import com.continuuity.zk.ZKClientService;
+import com.continuuity.zookeeper.Cancellable;
+import com.continuuity.zookeeper.Discoverable;
+import com.continuuity.zookeeper.DiscoveryService;
+import com.continuuity.zookeeper.DiscoveryServiceClient;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -32,8 +32,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;

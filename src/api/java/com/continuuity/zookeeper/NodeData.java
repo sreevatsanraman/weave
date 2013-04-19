@@ -13,17 +13,25 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.zk;
+package com.continuuity.zookeeper;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import org.apache.zookeeper.data.Stat;
+
+import javax.annotation.Nullable;
 
 /**
- * A {@link ListenableFuture} that also provides the requested path for a operation.
+ * Represents result of call to {@link ZKClientService#getData(String, org.apache.zookeeper.Watcher)}.
  */
-public interface OperationFuture<V> extends ListenableFuture<V> {
+public interface NodeData {
 
   /**
-   * @return The path being requested for the ZooKeeper operation.
+   * @return The {@link Stat} of the node.
    */
-  String getRequestPath();
+  Stat getStat();
+
+  /**
+   * @return Data stored in the node, or {@code null} if there is no data.
+   */
+  @Nullable
+  byte[] getData();
 }

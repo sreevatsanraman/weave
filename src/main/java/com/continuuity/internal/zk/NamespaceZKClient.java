@@ -15,11 +15,11 @@
  */
 package com.continuuity.internal.zk;
 
-import com.continuuity.zk.ForwardingZKClient;
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.OperationFuture;
-import com.continuuity.zk.ZKClient;
+import com.continuuity.zookeeper.ForwardingZKClient;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;

@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,11 +13,24 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.zk;
+package com.continuuity.zookeeper;
+
+import org.apache.zookeeper.data.Stat;
+
+import java.util.List;
 
 /**
- *
+ * Represents result of call to {@link ZKClientService#getChildren(String, org.apache.zookeeper.Watcher)} method.
  */
-public interface Cancellable {
-  void cancel();
+public interface NodeChildren {
+
+  /**
+   * @return The {@link Stat} of the node.
+   */
+  Stat getStat();
+
+  /**
+   * @return List of children node names.
+   */
+  List<String> getChildren();
 }

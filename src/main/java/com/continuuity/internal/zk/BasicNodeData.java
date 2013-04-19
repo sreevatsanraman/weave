@@ -15,7 +15,7 @@
  */
 package com.continuuity.internal.zk;
 
-import com.continuuity.zk.NodeData;
+import com.continuuity.zookeeper.NodeData;
 import com.google.common.base.Objects;
 import org.apache.zookeeper.data.Stat;
 

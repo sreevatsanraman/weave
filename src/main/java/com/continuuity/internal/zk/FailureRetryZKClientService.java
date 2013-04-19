@@ -15,13 +15,13 @@
  */
 package com.continuuity.internal.zk;
 
-import com.continuuity.zk.ForwardingZKClientService;
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.OperationFuture;
-import com.continuuity.zk.RetryStrategy;
-import com.continuuity.zk.RetryStrategy.OperationType;
-import com.continuuity.zk.ZKClientService;
+import com.continuuity.zookeeper.ForwardingZKClientService;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.RetryStrategy;
+import com.continuuity.zookeeper.RetryStrategy.OperationType;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -38,10 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A {@link com.continuuity.zk.ZKClientService} that will invoke {@link com.continuuity.zk.RetryStrategy} on operation failure.
- * This {@link com.continuuity.zk.ZKClientService} works by delegating calls to another {@link com.continuuity.zk.ZKClientService}
+ * A {@link com.continuuity.zookeeper.ZKClientService} that will invoke {@link com.continuuity.zookeeper.RetryStrategy} on operation failure.
+ * This {@link com.continuuity.zookeeper.ZKClientService} works by delegating calls to another {@link com.continuuity.zookeeper.ZKClientService}
  * and listen for the result. If the result is a failure, and is
- * {@link RetryUtils#canRetry(org.apache.zookeeper.KeeperException.Code) retryable}, the given {@link com.continuuity.zk.RetryStrategy}
+ * {@link RetryUtils#canRetry(org.apache.zookeeper.KeeperException.Code) retryable}, the given {@link com.continuuity.zookeeper.RetryStrategy}
  * will be called to determine the next retry time, or give up, depending on the value returned by the strategy.
  */
 public final class FailureRetryZKClientService extends ForwardingZKClientService {

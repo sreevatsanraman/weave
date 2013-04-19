@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,19 +13,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.zk;
+package com.continuuity.zookeeper;
 
-import com.continuuity.internal.zk.NamespaceZKClient;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- *
+ * A {@link ListenableFuture} that also provides the requested path for a operation.
  */
-public final class ZKClients {
+public interface OperationFuture<V> extends ListenableFuture<V> {
 
-  public static ZKClient namespace(ZKClient zkClient, String namespace) {
-    return new NamespaceZKClient(zkClient, namespace);
-  }
-
-  private ZKClients() {
-  }
+  /**
+   * @return The path being requested for the ZooKeeper operation.
+   */
+  String getRequestPath();
 }

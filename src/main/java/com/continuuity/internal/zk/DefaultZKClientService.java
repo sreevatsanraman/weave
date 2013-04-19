@@ -16,10 +16,10 @@
 package com.continuuity.internal.zk;
 
 import com.continuuity.weave.internal.utils.Threads;
-import com.continuuity.zk.NodeChildren;
-import com.continuuity.zk.NodeData;
-import com.continuuity.zk.OperationFuture;
-import com.continuuity.zk.ZKClientService;
+import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
+import com.continuuity.zookeeper.OperationFuture;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * The base implementation of {@link com.continuuity.zk.ZKClientService}.
+ * The base implementation of {@link com.continuuity.zookeeper.ZKClientService}.
  */
 public final class DefaultZKClientService implements ZKClientService {
 

@@ -36,7 +36,7 @@ public class DistributeShellTest {
     WeaveController controller = weaveRunner.prepare(new DistributedShell("pwd", "ls -al"))
                                             .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
                                             .start();
-    controller.waitFor(30, TimeUnit.SECONDS);
+//    controller.waitFor(30, TimeUnit.SECONDS);
   }
 
   @Before

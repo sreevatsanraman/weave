@@ -21,7 +21,7 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.state.Message;
-import com.continuuity.weave.internal.state.Messages;
+import com.continuuity.weave.internal.state.MessageCodec;
 import com.continuuity.weave.internal.utils.YarnUtils;
 import com.continuuity.zk.ZKClient;
 import com.google.common.collect.ImmutableMap;
@@ -107,7 +107,7 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
   protected void shutDown() throws Exception {
     // TODO: Not so good to create message and encode it in here
     // TODO: Also need to unify with WeaveController
-    byte[] data = Messages.encode(new Message() {
+    byte[] data = MessageCodec.encode(new Message() {
       @Override
       public Type getType() {
         return Type.SYSTEM;

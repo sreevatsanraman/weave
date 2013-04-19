@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,43 +13,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.api.logging;
-
-import java.net.InetAddress;
+package com.continuuity.zk;
 
 /**
  *
  */
-public interface LogEntry {
-
-  enum Level {
-    FATAL,
-    ERROR,
-    WARN,
-    INFO,
-    DEBUG,
-    TRACE
-  }
-
-  String getLoggerName();
-
-  String getHost();
-
-  long getTimestamp();
-
-  Level getLogLevel();
-
-  String getSourceClassName();
-
-  String getSourceMethodName();
-
-  String getFileName();
-
-  int getLineNumber();
-
-  String getThreadName();
-
-  String getMessage();
-
-  StackTraceElement[] getStackTraces();
+public interface Cancellable {
+  void cancel();
 }

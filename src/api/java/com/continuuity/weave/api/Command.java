@@ -15,14 +15,49 @@
  */
 package com.continuuity.weave.api;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+
 import java.util.Map;
 
 /**
- *
+ * Represents command objects.
  */
 public interface Command {
 
   String getCommand();
 
   Map<String, String> getOptions();
+
+  /**
+   * Builder for creating {@link Command} object.
+   */
+  static final class Builder {
+
+    private final String command;
+    private final ImmutableMap.Builder<String, String> options = ImmutableMap.builder();
+
+    public static Builder of(String command) {
+      Preconditions.checkArgument(command != null, "Command cannot be null.");
+      return new Builder(command);
+    }
+
+    public Builder addOption(String key, String value) {
+      options.put(key, value);
+      return this;
+    }
+
+    public Builder addOptions(Map<String, String> map) {
+      options.putAll(map);
+      return this;
+    }
+
+    public Command build() {
+      return new SimpleCommand(command, options.build());
+    }
+
+    private Builder(String command) {
+      this.command = command;
+    }
+  }
 }

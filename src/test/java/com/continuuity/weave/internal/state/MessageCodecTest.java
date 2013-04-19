@@ -14,7 +14,7 @@ public class MessageCodecTest {
 
   @Test
   public void testCodec() {
-    Message message = Messages.decode(Messages.encode(new Message() {
+    Message message = MessageCodec.decode(MessageCodec.encode(new Message() {
 
       @Override
       public Type getType() {
@@ -56,6 +56,6 @@ public class MessageCodecTest {
 
   @Test
   public void testFailureDecode() {
-    Assert.assertNull(Messages.decode("".getBytes()));
+    Assert.assertNull(MessageCodec.decode("".getBytes()));
   }
 }

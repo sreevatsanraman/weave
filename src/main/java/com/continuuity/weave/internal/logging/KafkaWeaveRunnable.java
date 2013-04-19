@@ -21,8 +21,6 @@ import com.continuuity.weave.api.WeaveRunnable;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -36,10 +34,8 @@ import java.util.Properties;
  */
 public final class KafkaWeaveRunnable implements WeaveRunnable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaWeaveRunnable.class);
-
-  private String kafkaDir;
-  private String zkConnectStr;
+  private final String kafkaDir;
+  private final String zkConnectStr;
   private Object server;
 
   public KafkaWeaveRunnable(String kafkaDir, String zkConnectStr) {
@@ -58,8 +54,21 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
   @Override
   public void initialize(WeaveContext context) {
     Map<String,String> args = context.getSpecification().getArguments();
-    kafkaDir = args.get("kafkaDir");
-    zkConnectStr = args.get("zkConnectStr");
+
+    try {
+      ClassLoader classLoader = getClassLoader(new File(args.get("kafkaDir")));
+
+      Class<?> configClass = classLoader.loadClass("kafka.server.KafkaConfig");
+      Object config = configClass.getConstructor(Properties.class)
+                                 .newInstance(generateKafkaConfig(args.get("zkConnectStr")));
+
+      Class<?> serverClass = classLoader.loadClass("kafka.server.KafkaServerStartable");
+      server = serverClass.getConstructor(configClass).newInstance(config);
+
+      serverClass.getMethod("startup").invoke(server);
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
+    }
   }
 
   @Override
@@ -79,23 +88,13 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
   @Override
   public void run() {
     try {
-      ClassLoader classLoader = getClassLoader();
-
-      Class<?> configClass = classLoader.loadClass("kafka.server.KafkaConfig");
-      Object config = configClass.getConstructor(Properties.class).newInstance(generateKafkaConfig());
-
-      Class<?> serverClass = classLoader.loadClass("kafka.server.KafkaServerStartable");
-      server = serverClass.getConstructor(configClass).newInstance(config);
-
-      serverClass.getMethod("startup").invoke(server);
-      serverClass.getMethod("awaitShutdown").invoke(server);
-
+      server.getClass().getMethod("awaitShutdown").invoke(server);
     } catch (Exception e) {
       throw Throwables.propagate(e);
     }
   }
 
-  private ClassLoader getClassLoader() throws MalformedURLException {
+  private ClassLoader getClassLoader(File kafkaDir) throws MalformedURLException {
     String[] cp = new String[]{
       "project/boot/scala-2.8.0/lib/scala-compiler.jar",
       "project/boot/scala-2.8.0/lib/scala-library.jar",
@@ -114,8 +113,9 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
     return new URLClassLoader(urls);
   }
 
-  private Properties generateKafkaConfig() {
+  private Properties generateKafkaConfig(String zkConnectStr) {
     Properties prop = new Properties();
+    // TODO: Log dir and random port
     prop.setProperty("log.dir", "/tmp/kafka-logs");
     prop.setProperty("zk.connect", zkConnectStr);
     prop.setProperty("num.threads", "8");

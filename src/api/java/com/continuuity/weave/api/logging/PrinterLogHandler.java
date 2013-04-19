@@ -52,19 +52,25 @@ public final class PrinterLogHandler implements LogHandler {
   public void onLog(LogEntry logEntry) {
     String utc = timestampToUTC(logEntry.getTimestamp());
 
-    formatter.format("%s %-5s [%s] [%s] %s:%s - %s\n",
+    formatter.format("%s %-5s %s [%s] [%s] %s:%s(%s:%d) - %s\n",
                      utc,
                      logEntry.getLogLevel().name(),
-                     logEntry.getHost().getCanonicalHostName(),
+                     logEntry.getLoggerName(),
+                     logEntry.getHost(),
                      logEntry.getThreadName(),
                      logEntry.getSourceClassName(),
                      logEntry.getSourceMethodName(),
+                     logEntry.getFileName(),
+                     logEntry.getLineNumber(),
                      logEntry.getMessage());
     formatter.flush();
 
-    Throwable throwable = logEntry.getThrowable();
-    if (throwable != null) {
-      throwable.printStackTrace(writer);
+    StackTraceElement[] stackTraces = logEntry.getStackTraces();
+    if (stackTraces != null) {
+      for (StackTraceElement stackTrace : stackTraces) {
+        writer.append("\tat ").append(stackTrace.toString());
+        writer.println();
+      }
       writer.flush();
     }
   }

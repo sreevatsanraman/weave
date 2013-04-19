@@ -18,22 +18,15 @@ package com.continuuity.weave.internal.state;
 import com.continuuity.weave.api.Command;
 
 /**
- *
+ * Collection of predefined system messages.
  */
-public final class Messages {
+public final class SystemMessages {
 
-  public static Message createForRunnable(String runnableName, Command command) {
-    return new SimpleMessage(Message.Type.USER, Message.Scope.RUNNABLE, runnableName, command);
-  }
+  public static final Message STOP = new SimpleMessage(Message.Type.SYSTEM,
+                                                       Message.Scope.APPLICATION,
+                                                       null,
+                                                       Command.Builder.of("stop").build());
 
-  public static Message createForAll(Command command) {
-    return new SimpleMessage(Message.Type.USER, Message.Scope.ALL_RUNNABLE, null, command);
-  }
-
-  public static Message createForApplication(Command command) {
-    return new SimpleMessage(Message.Type.USER, Message.Scope.APPLICATION, null, command);
-  }
-
-  private Messages() {
+  private SystemMessages() {
   }
 }

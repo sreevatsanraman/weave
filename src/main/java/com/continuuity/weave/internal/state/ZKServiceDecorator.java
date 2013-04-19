@@ -16,6 +16,8 @@
 package com.continuuity.weave.internal.state;
 
 import com.continuuity.weave.api.RunId;
+import com.continuuity.weave.api.WeaveController;
+import com.continuuity.weave.internal.StackTraceElementCodec;
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zk.ForwardingZKClient;
 import com.continuuity.zk.NodeChildren;
@@ -35,7 +37,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.zookeeper.CreateMode;
@@ -44,8 +46,6 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class ZKServiceDecorator extends AbstractService {
 
   private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
-  private static Logger LOG = LoggerFactory.getLogger(ZKServiceDecorator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZKServiceDecorator.class);
 
   private final ZKClientService zkClient;
   private final RunId id;
@@ -86,7 +86,7 @@ public final class ZKServiceDecorator extends AbstractService {
     if (decoratedService instanceof MessageCallback) {
       this.messageCallback = new MessageCallbackCaller((MessageCallback) decoratedService, zkClient);
     } else {
-      this.messageCallback = new MessageCallbackCaller();
+      this.messageCallback = new MessageCallbackCaller(zkClient);
     }
   }
 
@@ -110,11 +110,11 @@ public final class ZKServiceDecorator extends AbstractService {
       @Override
       public void onSuccess(State result) {
         // Create nodes for states and messaging
-        JsonObject stateContent = new JsonObject();
-        stateContent.addProperty("state", "NEW");
+        StateNode stateNode = new StateNode(WeaveController.State.STARTING, null);
         createMessagesNode();
-        final OperationFuture<String> stateFuture = zkClient.create(getZKPath("state"), encode(stateContent),
-                                                              CreateMode.PERSISTENT);
+        final OperationFuture<String> stateFuture = zkClient.create(getZKPath("state"),
+                                                                    encodeStateNode(stateNode),
+                                                                    CreateMode.PERSISTENT);
         stateFuture.addListener(new Runnable() {
           @Override
           public void run() {
@@ -161,7 +161,7 @@ public final class ZKServiceDecorator extends AbstractService {
 
           JsonObject content = new JsonObject();
           content.add("data", liveNodeData.get());
-          listenFailure(zkClient.create(liveNode, encode(content), CreateMode.EPHEMERAL));
+          listenFailure(zkClient.create(liveNode, encodeJson(content), CreateMode.EPHEMERAL));
         }
       }
     };
@@ -189,7 +189,7 @@ public final class ZKServiceDecorator extends AbstractService {
       @Override
       public void process(WatchedEvent event) {
         // TODO: Do we need to deal with other type of events?
-        if (event.getType() == Event.EventType.NodeChildrenChanged) {
+        if (event.getType() == Event.EventType.NodeChildrenChanged && decoratedService.isRunning()) {
           watchMessages();
         }
       }
@@ -216,17 +216,16 @@ public final class ZKServiceDecorator extends AbstractService {
     Futures.addCallback(zkClient.getData(path), new FutureCallback<NodeData>() {
       @Override
       public void onSuccess(final NodeData result) {
-        Message message = Messages.decode(result.getData());
+        Message message = MessageCodec.decode(result.getData());
         if (message == null) {
           LOG.error("Failed to decode message for " + messageId + " in " + path);
           listenFailure(zkClient.delete(path, result.getStat().getVersion()));
           return;
         }
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Message received from " + path + ": " + new String(Messages.encode(message), Charsets.UTF_8));
+          LOG.debug("Message received from " + path + ": " + new String(MessageCodec.encode(message), Charsets.UTF_8));
         }
-        if (message.getType() == Message.Type.SYSTEM) {
-          if ("stop".equalsIgnoreCase(message.getCommand().getCommand())) {
+        if (message.getType() == Message.Type.SYSTEM && SystemMessages.STOP.equals(message)) {
             decoratedService.stop().addListener(new Runnable() {
 
               @Override
@@ -234,7 +233,6 @@ public final class ZKServiceDecorator extends AbstractService {
                 stopServiceOnComplete(zkClient.delete(path, result.getStat().getVersion()), ZKServiceDecorator.this);
               }
             }, MoreExecutors.sameThreadExecutor());
-          }
           return;
         }
         messageCallback.onReceived(callbackExecutor, path, result.getStat().getVersion(), messageId, message);
@@ -251,8 +249,19 @@ public final class ZKServiceDecorator extends AbstractService {
     return new DecoratedServiceListener();
   }
 
-  private byte[] encode(JsonElement json) {
-    return new Gson().toJson(json).getBytes(Charsets.UTF_8);
+  private <V> byte[] encode(V data, Class<? extends V> clz) {
+    return new GsonBuilder().registerTypeAdapter(StateNode.class, new StateNode.StateNodeCodec())
+                            .registerTypeAdapter(StackTraceElement.class, new StackTraceElementCodec())
+                            .create()
+      .toJson(data, clz).getBytes(Charsets.UTF_8);
+  }
+
+  private byte[] encodeStateNode(StateNode stateNode) {
+    return encode(stateNode, StateNode.class);
+  }
+
+  private <V extends JsonElement> byte[] encodeJson(V json) {
+    return encode(json, json.getClass());
   }
 
   private String getZKPath(String path) {
@@ -279,15 +288,13 @@ public final class ZKServiceDecorator extends AbstractService {
 
   private static final class MessageCallbackCaller {
     private final MessageCallback callback;
-    private final ZKClientService zkClient;
+    private final ZKClient zkClient;
 
-    private MessageCallbackCaller() {
-      // No-op
-      callback = null;
-      zkClient = null;
+    private MessageCallbackCaller(ZKClient zkClient) {
+      this(null, zkClient);
     }
 
-    private MessageCallbackCaller(MessageCallback callback, ZKClientService zkClient) {
+    private MessageCallbackCaller(MessageCallback callback, ZKClient zkClient) {
       this.callback = callback;
       this.zkClient = zkClient;
     }
@@ -295,6 +302,11 @@ public final class ZKServiceDecorator extends AbstractService {
     public void onReceived(Executor executor, final String path,
                            final int version, final String id, final Message message) {
       if (callback == null) {
+        // Simply delete the message
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Ignoring incoming message from " + path + ": " + message);
+        }
+        listenFailure(zkClient.delete(path, version));
         return;
       }
 
@@ -325,20 +337,20 @@ public final class ZKServiceDecorator extends AbstractService {
     @Override
     public void starting() {
       LOG.info("Starting: " + id);
-      saveState("STARTING");
+      saveState(WeaveController.State.STARTING);
     }
 
     @Override
     public void running() {
       LOG.info("Running: " + id);
       notifyStarted();
-      saveState("RUNNING");
+      saveState(WeaveController.State.RUNNING);
     }
 
     @Override
     public void stopping(State from) {
       LOG.info("Stopping: " + id);
-      saveState("STOPPING");
+      saveState(WeaveController.State.STOPPING);
     }
 
     @Override
@@ -347,9 +359,10 @@ public final class ZKServiceDecorator extends AbstractService {
       if (zkFailure) {
         return;
       }
-      JsonObject stateContent = new JsonObject();
-      stateContent.addProperty("state", "TERMINATED");
-      Futures.addCallback(stopServiceOnComplete(zkClient.setData(getZKPath("state"), encode(stateContent)), zkClient),
+      StateNode stateNode = new StateNode(WeaveController.State.TERMINATED, null);
+      Futures.addCallback(stopServiceOnComplete(zkClient.setData(getZKPath("state"),
+                                                                 encodeStateNode(stateNode)),
+                                                zkClient),
         new FutureCallback<State>() {
           @Override
           public void onSuccess(State result) {
@@ -369,13 +382,11 @@ public final class ZKServiceDecorator extends AbstractService {
       if (zkFailure) {
         return;
       }
-      StringWriter stackTraceWriter = new StringWriter();
-      failure.printStackTrace(new PrintWriter(stackTraceWriter));
-      JsonObject stateContent = new JsonObject();
-      stateContent.addProperty("state", "FAILED");
-      stateContent.addProperty("stackTrace", stackTraceWriter.toString());
+
+      StateNode stateNode = new StateNode(WeaveController.State.FAILED, failure.getStackTrace());
       stopServiceOnComplete(zkClient.setData(getZKPath("state"),
-                                             encode(stateContent)), zkClient).addListener(new Runnable() {
+                                             encodeStateNode(stateNode)),
+                            zkClient).addListener(new Runnable() {
         @Override
         public void run() {
           notifyFailed(failure);
@@ -383,13 +394,12 @@ public final class ZKServiceDecorator extends AbstractService {
       }, SAME_THREAD_EXECUTOR);
     }
 
-    private void saveState(String state) {
+    private void saveState(WeaveController.State state) {
       if (zkFailure) {
         return;
       }
-      JsonObject stateContent = new JsonObject();
-      stateContent.addProperty("state", state);
-      stopOnFailure(zkClient.setData(getZKPath("state"), encode(stateContent)));
+      StateNode stateNode = new StateNode(state, null);
+      stopOnFailure(zkClient.setData(getZKPath("state"), encodeStateNode(stateNode)));
     }
 
     private <V> void stopOnFailure(final OperationFuture<V> future) {

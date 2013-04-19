@@ -33,9 +33,6 @@ import com.continuuity.weave.internal.api.DefaultWeaveSpecification;
 import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
-import com.continuuity.zk.RetryStrategies;
-import com.continuuity.zk.ZKClientService;
-import com.continuuity.zk.ZKClientServices;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -48,9 +45,6 @@ import com.google.common.io.Files;
 import com.google.common.io.LineReader;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -167,7 +161,7 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
           final LogPoller logPoller = new LogPoller(weaveSpec, logHandlers);
           logPoller.start();
 
-          return createController(runId);
+          return createController(runId, logPoller);
         } catch (Exception e) {
           throw Throwables.propagate(e);
         }
@@ -175,41 +169,14 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
     };
   }
 
-  private WeaveController createController(RunId runId) {
-    final ZKClientService zkClient = ZKClientServices.reWatchOnExpire(
-      ZKClientServices.retryOnFailure(
-        ZKClientService.Builder.of(zkConnectStr).setSessionTimeout(10000).build(),
-        RetryStrategies.fixDelay(2, TimeUnit.SECONDS)));
-
-    zkClient.start();
-    return new ZKWeaveController(zkClient, runId) {
-      @Override
-      public ListenableFuture<?> stop() {
-        final SettableFuture<String> result = SettableFuture.create();
-        final ListenableFuture<?> future = super.stop();
-        future.addListener(new Runnable() {
-          @Override
-          public void run() {
-            zkClient.stop().addListener(new Runnable() {
-              @Override
-              public void run() {
-                try {
-                  result.set(future.get().toString());
-                } catch (Exception e) {
-                  result.setException(e);
-                }
-              }
-            }, MoreExecutors.sameThreadExecutor());
-          }
-        }, MoreExecutors.sameThreadExecutor());
-        return result;
-      }
-    };
+  private WeaveController createController(RunId runId, LogPoller logPoller) {
+    return new ZKWeaveController(zkConnectStr, 10000, runId);
   }
 
   @Override
   public WeaveController lookup(RunId runId) {
-    return null;  //To change body of implemented methods use File | Settings | File Templates.
+    // TODO: Check if the runId presences in ZK.
+    return new ZKWeaveController(zkConnectStr, 10000, runId);
   }
 
   @Override

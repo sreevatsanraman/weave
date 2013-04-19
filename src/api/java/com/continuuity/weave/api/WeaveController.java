@@ -18,20 +18,90 @@ package com.continuuity.weave.api;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
 
 /**
- *
+ * For controller a running application.
  */
 public interface WeaveController {
 
-  RunInfo getRunInfo();
+  /**
+   * Returns the {@link RunId} of the running application.
+   */
+  RunId getRunId();
 
+  /**
+   * Adds a {@link LogHandler} for receiving application log.
+   * @param handler The handler to add.
+   */
   void addLogHandler(LogHandler handler);
 
-  ListenableFuture<?> stop();
+  /**
+   * Sends a user command to the running application.
+   * @param command
+   * @return
+   */
+  ListenableFuture<Command> sendCommand(Command command);
 
-  ListenableFuture<?> sendCommand(Command command);
+  /**
+   * Sends a user command to the given runnable of the running application.
+   * @param runnableName
+   * @param command
+   * @return
+   */
+  ListenableFuture<Command> sendCommand(String runnableName, Command command);
 
-  boolean waitFor(long timeout, TimeUnit timeoutUnit) throws InterruptedException;
+  /**
+   * Returns the current state of the running application that this controller is connected to.
+   */
+  State getState();
+
+  ListenableFuture<State> stop();
+
+  void stopAndWait();
+
+  void addListener(Listener listener, Executor executor);
+
+  enum State {
+
+    /**
+     * A service in this state is transitioning to {@link #RUNNING}.
+     */
+    STARTING,
+
+    /**
+     * A service in this state is operational.
+     */
+    RUNNING,
+
+    /**
+     * A service in this state is transitioning to {@link #TERMINATED}.
+     */
+    STOPPING,
+
+    /**
+     * A service in this state has completed execution normally. It does minimal work and consumes
+     * minimal resources.
+     */
+    TERMINATED,
+
+    /**
+     * A service in this state has encountered a problem and may not be operational. It cannot be
+     * started nor stopped.
+     */
+    FAILED
+  }
+
+  interface Listener {
+
+    void starting();
+
+    void running();
+
+    void stopping();
+
+    void terminated();
+
+    void failed(StackTraceElement[] stackTraces);
+  }
 }

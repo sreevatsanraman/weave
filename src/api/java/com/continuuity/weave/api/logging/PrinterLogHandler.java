@@ -1,4 +1,21 @@
+/**
+ * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.continuuity.weave.api.logging;
+
+import com.google.common.base.Splitter;
 
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -37,24 +54,46 @@ public final class PrinterLogHandler implements LogHandler {
   public void onLog(LogEntry logEntry) {
     String utc = timestampToUTC(logEntry.getTimestamp());
 
-    formatter.format("%s %-5s [%s] [%s] %s:%s - %s\n",
+    formatter.format("%s %-5s %s [%s] [%s] %s:%s(%s:%d) - %s\n",
                      utc,
                      logEntry.getLogLevel().name(),
-                     logEntry.getHost().getCanonicalHostName(),
+                     getShortenLoggerName(logEntry.getLoggerName()),
+                     logEntry.getHost(),
                      logEntry.getThreadName(),
-                     logEntry.getSourceClassName(),
+                     getSimpleClassName(logEntry.getSourceClassName()),
                      logEntry.getSourceMethodName(),
+                     logEntry.getFileName(),
+                     logEntry.getLineNumber(),
                      logEntry.getMessage());
     formatter.flush();
 
-    Throwable throwable = logEntry.getThrowable();
-    if (throwable != null) {
-      throwable.printStackTrace(writer);
+    StackTraceElement[] stackTraces = logEntry.getStackTraces();
+    if (stackTraces != null) {
+      for (StackTraceElement stackTrace : stackTraces) {
+        writer.append("\tat ").append(stackTrace.toString());
+        writer.println();
+      }
       writer.flush();
     }
   }
 
   private String timestampToUTC(long timestamp) {
     return DATE_FORMAT.get().format(new Date(timestamp));
+  }
+
+  private String getShortenLoggerName(String loggerName) {
+    StringBuilder builder = new StringBuilder();
+    String previous = null;
+    for (String part : Splitter.on('.').split(loggerName)) {
+      if (previous != null) {
+        builder.append(previous.charAt(0)).append('.');
+      }
+      previous = part;
+    }
+    return builder.append(previous).toString();
+  }
+
+  private String getSimpleClassName(String className) {
+    return className.substring(className.lastIndexOf('.') + 1);
   }
 }

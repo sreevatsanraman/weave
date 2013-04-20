@@ -167,9 +167,9 @@ public final class WeaveContainerService implements Service {
     private final int port;
 
     private ContainerInfo() throws UnknownHostException {
-      id = System.getenv("YARN_CONTAINER_ID");
-      host = InetAddress.getByName(System.getenv("YARN_CONTAINER_HOST"));
-      port = Integer.parseInt(System.getenv("YARN_CONTAINER_PORT"));
+      id = System.getenv(EnvKeys.YARN_CONTAINER_ID);
+      host = InetAddress.getByName(System.getenv(EnvKeys.YARN_CONTAINER_HOST));
+      port = Integer.parseInt(System.getenv(EnvKeys.YARN_CONTAINER_PORT));
     }
 
     private String getId() {

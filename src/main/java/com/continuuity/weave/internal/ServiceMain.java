@@ -36,7 +36,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.InetAddress;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -98,6 +97,10 @@ public abstract class ServiceMain {
     completion.get();
   }
 
+  protected abstract String getHostname();
+
+  protected abstract String getKafkaZKConnect();
+
   private void configureLogger() {
     // Check if SLF4J is bound to logback in the current environment
     ILoggerFactory loggerFactory = LoggerFactory.getILoggerFactory();
@@ -123,8 +126,12 @@ public abstract class ServiceMain {
         Node node = appenders.item(i);
         if ("KAFKA".equals(node.getAttributes().getNamedItem("name").getNodeValue())) {
           Element hostname = document.createElement("hostname");
-          hostname.appendChild(document.createTextNode(InetAddress.getLocalHost().getCanonicalHostName()));
+          hostname.appendChild(document.createTextNode(getHostname()));
           node.appendChild(hostname);
+
+          Element zookeeper = document.createElement("zookeeper");
+          zookeeper.appendChild(document.createTextNode(getKafkaZKConnect()));
+          node.appendChild(zookeeper);
         }
       }
 

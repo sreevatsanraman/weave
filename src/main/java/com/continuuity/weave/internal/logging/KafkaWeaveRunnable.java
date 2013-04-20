@@ -20,6 +20,7 @@ import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnable;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.continuuity.weave.internal.utils.Networks;
+import com.continuuity.weave.internal.yarn.EnvKeys;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -54,7 +55,7 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
   @Override
   public void initialize(WeaveContext context) {
     Map<String,String> args = context.getSpecification().getArguments();
-    String zkConnectStr = System.getenv(KafkaAppender.KAFKA_ZK_CONNECT_KEY);
+    String zkConnectStr = System.getenv(EnvKeys.KAFKA_ZK_CONNECT);
 
     try {
       ClassLoader classLoader = getClassLoader(new File(args.get("kafkaDir")));
@@ -102,7 +103,7 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
       "core/target/scala_2.8.0/kafka-0.7.2.jar",
       "perf/target/scala_2.8.0/kafka-perf-0.7.2.jar",
       "core/lib_managed/scala_2.8.0/compile/jopt-simple-3.2.jar",
-      "core/lib_managed/scala_2.8.0/compile/log4j-1.2.15.jar",
+      "core/lib_managed/scala_2.8.0/compile/log4j-over-slf4j-1.6.4.jar",
       "core/lib_managed/scala_2.8.0/compile/snappy-java-1.0.4.1.jar",
       "core/lib_managed/scala_2.8.0/compile/zkclient-0.1.jar",
       "core/lib_managed/scala_2.8.0/compile/zookeeper-3.3.4.jar"};

@@ -64,7 +64,6 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   private ConnectionPool connectionPool;
 
   public SimpleKafkaClient(String zkConnectStr) {
-    Thread.currentThread().dumpStack();
     zkClientService = ZKClientServices.reWatchOnExpire(
                         ZKClientServices.retryOnFailure(
                           ZKClientService.Builder.of(zkConnectStr).build(),

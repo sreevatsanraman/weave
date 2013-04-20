@@ -56,4 +56,14 @@ public final class WeaveContainerMain extends ServiceMain {
       reader.close();
     }
   }
+
+  @Override
+  protected String getHostname() {
+    return System.getenv(EnvKeys.YARN_CONTAINER_HOST);
+  }
+
+  @Override
+  protected String getKafkaZKConnect() {
+    return System.getenv(EnvKeys.KAFKA_ZK_CONNECT);
+  }
 }

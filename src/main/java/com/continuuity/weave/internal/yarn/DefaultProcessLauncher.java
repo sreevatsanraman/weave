@@ -15,7 +15,6 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.continuuity.weave.internal.logging.KafkaAppender;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -140,10 +139,10 @@ final class DefaultProcessLauncher implements ProcessLauncher {
       @Override
       public CommandAdder withCommands() {
         // Defaulting extra environments
-        environment.put("YARN_CONTAINER_ID", container.getId().toString());
-        environment.put("YARN_CONTAINER_HOST", container.getNodeId().getHost());
-        environment.put("YARN_CONTAINER_PORT", Integer.toString(container.getNodeId().getPort()));
-        environment.put(KafkaAppender.KAFKA_ZK_CONNECT_KEY, kafkaZKConnect);
+        environment.put(EnvKeys.YARN_CONTAINER_ID, container.getId().toString());
+        environment.put(EnvKeys.YARN_CONTAINER_HOST, container.getNodeId().getHost());
+        environment.put(EnvKeys.YARN_CONTAINER_PORT, Integer.toString(container.getNodeId().getPort()));
+        environment.put(EnvKeys.KAFKA_ZK_CONNECT, kafkaZKConnect);
 
         // TODO: Hack now
         environment.put("CLASSPATH", System.getProperty("java.class.path"));

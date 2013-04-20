@@ -15,18 +15,26 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.api.RunIds;
 import com.google.common.base.Preconditions;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Main class for launching {@link ApplicationMasterService}. It takes single argument, which is the
- * zookeeper connection string.
+ * Main class for launching {@link ApplicationMasterService}.
  */
 public final class ApplicationMasterMain extends ServiceMain {
+
+  private final String kafkaZKConnect;
+
+  private ApplicationMasterMain(String kafkaZKConnect) {
+    this.kafkaZKConnect = kafkaZKConnect;
+  }
 
   /**
    * Starts the application master.
@@ -37,8 +45,24 @@ public final class ApplicationMasterMain extends ServiceMain {
    * @throws InterruptedException
    */
   public static void main(String[] args) throws Exception {
-    Preconditions.checkArgument(args.length >= 2, "Incorrect argument size.");
-    new ApplicationMasterMain().doMain(new ApplicationMasterService(RunIds.fromString(args[2]),
-                                                                    args[0], new File(args[1])));
+    Preconditions.checkArgument(args.length >= 3, "Incorrect argument size.");
+    String zkConnect = args[0];
+    RunId runId = RunIds.fromString(args[2]);
+    new ApplicationMasterMain(String.format("%s/%s/kafka", zkConnect, runId))
+      .doMain(new ApplicationMasterService(runId, zkConnect, new File(args[1])));
+  }
+
+  @Override
+  protected String getHostname() {
+    try {
+      return InetAddress.getLocalHost().getCanonicalHostName();
+    } catch (UnknownHostException e) {
+      return "unknown";
+    }
+  }
+
+  @Override
+  protected String getKafkaZKConnect() {
+    return kafkaZKConnect;
   }
 }

@@ -53,7 +53,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
 
-  public static final String KAFKA_ZK_CONNECT_KEY = "weave.logging.kafka.zkConnect";
   private static final Logger LOG = LoggerFactory.getLogger(KafkaAppender.class);
 
   private final LogEventConverter eventConverter;
@@ -63,9 +62,9 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
    * Rough count of how many entries are being buffered. It's just approximate, not exact.
    */
   private final AtomicInteger bufferedSize;
-  private final String zkConnectStr;
 
   private KafkaClient kafkaClient;
+  private String zkConnectStr;
   private String hostname;
   private String topic;
   private Queue<String> buffer;
@@ -79,7 +78,10 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
     flushTask = createFlushTask();
     bufferedSize = new AtomicInteger();
     buffer = new ConcurrentLinkedQueue<String>();
-    zkConnectStr = System.getenv(KAFKA_ZK_CONNECT_KEY);
+  }
+
+  public void setZookeeper(String zkConnectStr) {
+    this.zkConnectStr = zkConnectStr;
   }
 
   public void setHostname(String hostname) {
@@ -108,7 +110,7 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
     Futures.addCallback(kafkaClient.start(), new FutureCallback<Object>() {
       @Override
       public void onSuccess(Object result) {
-        LOG.info("Kafka client started");
+        LOG.info("Kafka client started: " + zkConnectStr);
         publisher.set(kafkaClient.preparePublish(topic, Compression.SNAPPY));
         scheduler.scheduleWithFixedDelay(flushTask, 0, flushPeriod, TimeUnit.MILLISECONDS);
       }

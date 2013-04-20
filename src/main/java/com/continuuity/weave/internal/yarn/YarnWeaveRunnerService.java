@@ -139,10 +139,9 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
                              ApplicationMasterMain.class.getName(),
                              zkConnectStr,
                              "weaveSpec.json",
-                             runId.getId(),
-                             "1>/tmp/out", "2>/tmp/err"));
+                             runId.getId()));
 
-          // TODO
+          // TODO: Should figure out jar dependencies
           containerLaunchContext.setEnvironment(ImmutableMap.of("CLASSPATH", System.getProperty("java.class.path")));
           Resource capability = Records.newRecord(Resource.class);
           capability.setMemory(256);

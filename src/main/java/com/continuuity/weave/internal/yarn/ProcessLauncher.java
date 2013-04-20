@@ -26,8 +26,6 @@ public interface ProcessLauncher {
 
   interface ProcessController {
     void stop();
-
-    void status();
   }
 
   interface PrepareLaunchContext {

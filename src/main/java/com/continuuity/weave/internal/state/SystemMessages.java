@@ -22,10 +22,15 @@ import com.continuuity.weave.api.Command;
  */
 public final class SystemMessages {
 
-  public static final Message STOP = new SimpleMessage(Message.Type.SYSTEM,
-                                                       Message.Scope.APPLICATION,
-                                                       null,
-                                                       Command.Builder.of("stop").build());
+  private static final Command STOP_COMMAND = Command.Builder.of("stop").build();
+
+  public static Message stopApplication() {
+    return new SimpleMessage(Message.Type.SYSTEM, Message.Scope.APPLICATION, null, STOP_COMMAND);
+  }
+
+  public static Message stopRunnable(String runnableName) {
+    return new SimpleMessage(Message.Type.SYSTEM, Message.Scope.RUNNABLE, runnableName, STOP_COMMAND);
+  }
 
   private SystemMessages() {
   }

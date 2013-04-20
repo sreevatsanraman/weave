@@ -15,16 +15,14 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
-import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCodec;
+import com.continuuity.weave.internal.state.SystemMessages;
 import com.continuuity.weave.internal.utils.YarnUtils;
 import com.continuuity.zookeeper.ZKClient;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -39,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.Map;
 
 /**
  *
@@ -98,49 +95,16 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
            "weave.spec",
            runnableName,
            runId.getId())
-      .redirectOutput("/tmp/container." + runnableName + ".out")
-      .redirectError("/tmp/container." + runnableName + ".err")
+      .noOutput().noError()
       .launch();
   }
 
   @Override
   protected void shutDown() throws Exception {
-    // TODO: Not so good to create message and encode it in here
-    // TODO: Also need to unify with WeaveController
-    byte[] data = MessageCodec.encode(new Message() {
-      @Override
-      public Type getType() {
-        return Type.SYSTEM;
-      }
-
-      @Override
-      public Scope getScope() {
-        return Scope.RUNNABLE;
-      }
-
-      @Override
-      public String getRunnableName() {
-        return runnableName;
-      }
-
-      @Override
-      public Command getCommand() {
-        return new Command() {
-          @Override
-          public String getCommand() {
-            return "stop";
-          }
-
-          @Override
-          public Map<String, String> getOptions() {
-            return ImmutableMap.of();
-          }
-        };
-      }
-    });
-
+    // TODO: Need to unify with WeaveController
+    byte[] data = MessageCodec.encode(SystemMessages.stopRunnable(runnableName));
     final SettableFuture<String> deleteFuture = SettableFuture.create();
-    // TODO: Should be wait for instance node to go away as well.
+    // TODO: Should wait for instance node to go away as well.
     Futures.addCallback(zkClient.create("/" + runId + "/messages/msg", data, CreateMode.PERSISTENT_SEQUENTIAL),
                         new FutureCallback<String>() {
                           @Override

@@ -263,7 +263,7 @@ public final class ApplicationMasterService implements Service {
 
   private ListenableFuture<String> processMessage(String messageId, Message message) {
     SettableFuture<String> result = SettableFuture.create();
-    // TODO:
+    // TODO: Handling custom message
     return result;
   }
 

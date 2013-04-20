@@ -100,7 +100,8 @@ public abstract class AbstractServiceController implements ServiceController {
   public ListenableFuture<State> stop() {
     State oldState = state.getAndSet(State.STOPPING);
     if (oldState == null || oldState == State.STARTING || oldState == State.RUNNING) {
-      return Futures.transform(sendMessage(SystemMessages.STOP, State.TERMINATED), new AsyncFunction<State, State>() {
+      return Futures.transform(sendMessage(SystemMessages.stopApplication(), State.TERMINATED),
+                               new AsyncFunction<State, State>() {
         @Override
         public ListenableFuture<State> apply(State input) throws Exception {
           // Wait for the instance ephemeral node goes away

@@ -15,7 +15,6 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -164,7 +163,10 @@ final class DefaultProcessLauncher implements ProcessLauncher {
 
       @Override
       public StdOutSetter add(String cmd, String... args) {
-        Joiner.on(' ').appendTo(commandBuilder, cmd, "", args);
+        commandBuilder.append(cmd);
+        for (String arg : args) {
+          commandBuilder.append(' ').append(arg);
+        }
         return this;
       }
 
@@ -239,11 +241,6 @@ final class DefaultProcessLauncher implements ProcessLauncher {
         LOG.error("Fail to stop container.", e);
         throw Throwables.propagate(e);
       }
-    }
-
-    @Override
-    public void status() {
-      // TODO
     }
   }
 }

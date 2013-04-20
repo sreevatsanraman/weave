@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,18 +13,33 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.api;
+package com.continuuity.weave.internal.utils;
 
-import com.continuuity.weave.api.logging.LogHandler;
+import java.io.IOException;
+import java.net.ServerSocket;
 
 /**
- * For controller a running application.
+ *
  */
-public interface WeaveController extends ServiceController {
+public final class Networks {
 
   /**
-   * Adds a {@link LogHandler} for receiving application log.
-   * @param handler The handler to add.
+   * Find a random free port in localhost for binding.
+   * @return A port number or -1 for failure.
    */
-  void addLogHandler(LogHandler handler);
+  public static int getRandomPort() {
+    try {
+      ServerSocket socket = new ServerSocket(0);
+      try {
+        return socket.getLocalPort();
+      } finally {
+        socket.close();
+      }
+    } catch (IOException e) {
+      return -1;
+    }
+  }
+
+  private Networks() {
+  }
 }

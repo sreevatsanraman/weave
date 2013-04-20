@@ -7,10 +7,18 @@
         </encoder>
     </appender>
 
+    <appender name="KAFKA" class="com.continuuity.weave.internal.logging.KafkaAppender">
+        <topic>log</topic>
+    </appender>
+
     <logger name="org.apache.zookeeper" level="WARN" />
 
-    <root level="INFO">
+    <logger name="com.continuuity.weave.internal.logging.KafkaAppender" additivity="false">
         <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="KAFKA"/>
     </root>
 
 </configuration>

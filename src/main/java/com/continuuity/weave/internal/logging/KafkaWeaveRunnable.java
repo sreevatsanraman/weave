@@ -19,6 +19,8 @@ import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnable;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
+import com.continuuity.weave.internal.utils.Networks;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 
@@ -35,32 +37,31 @@ import java.util.Properties;
 public final class KafkaWeaveRunnable implements WeaveRunnable {
 
   private final String kafkaDir;
-  private final String zkConnectStr;
   private Object server;
 
-  public KafkaWeaveRunnable(String kafkaDir, String zkConnectStr) {
+  public KafkaWeaveRunnable(String kafkaDir) {
     this.kafkaDir = kafkaDir;
-    this.zkConnectStr = zkConnectStr;
   }
 
   @Override
   public WeaveRunnableSpecification configure() {
     return WeaveRunnableSpecification.Builder.with()
       .setName("kafka")
-      .withArguments(ImmutableMap.of("kafkaDir", kafkaDir, "zkConnectStr", zkConnectStr))
+      .withArguments(ImmutableMap.of("kafkaDir", kafkaDir))
       .build();
   }
 
   @Override
   public void initialize(WeaveContext context) {
     Map<String,String> args = context.getSpecification().getArguments();
+    String zkConnectStr = System.getenv(KafkaAppender.KAFKA_ZK_CONNECT_KEY);
 
     try {
       ClassLoader classLoader = getClassLoader(new File(args.get("kafkaDir")));
 
       Class<?> configClass = classLoader.loadClass("kafka.server.KafkaConfig");
       Object config = configClass.getConstructor(Properties.class)
-                                 .newInstance(generateKafkaConfig(args.get("zkConnectStr")));
+                                 .newInstance(generateKafkaConfig(zkConnectStr));
 
       Class<?> serverClass = classLoader.loadClass("kafka.server.KafkaServerStartable");
       server = serverClass.getConstructor(configClass).newInstance(config);
@@ -114,12 +115,14 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
   }
 
   private Properties generateKafkaConfig(String zkConnectStr) {
+    int port = Networks.getRandomPort();
+    Preconditions.checkState(port > 0, "Failed to get random port.");
+
     Properties prop = new Properties();
-    // TODO: Log dir and random port
-    prop.setProperty("log.dir", "/tmp/kafka-logs");
+    prop.setProperty("log.dir", new File("kafka-logs").getAbsolutePath());
     prop.setProperty("zk.connect", zkConnectStr);
     prop.setProperty("num.threads", "8");
-    prop.setProperty("port", "9092");
+    prop.setProperty("port", Integer.toString(port));
     prop.setProperty("log.flush.interval", "10000");
     prop.setProperty("max.socket.request.bytes", "104857600");
     prop.setProperty("log.cleanup.interval.mins", "1");

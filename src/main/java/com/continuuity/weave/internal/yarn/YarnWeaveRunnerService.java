@@ -170,7 +170,9 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
   }
 
   private WeaveController createController(RunId runId, LogPoller logPoller) {
-    return new ZKWeaveController(zkConnectStr, 10000, runId);
+    ZKWeaveController controller = new ZKWeaveController(zkConnectStr, 10000, runId);
+    controller.start();
+    return controller;
   }
 
   @Override
@@ -211,7 +213,7 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
 
           @Override
           public WeaveRunnableSpecification getRunnableSpecification() {
-            KafkaWeaveRunnable kafkaRunnable = new KafkaWeaveRunnable("kafka.tgz", zkConnectStr);
+            KafkaWeaveRunnable kafkaRunnable = new KafkaWeaveRunnable("kafka.tgz");
             return new DefaultWeaveRunnableSpecification(kafkaRunnable.getClass().getName(),
                                                          kafkaRunnable.configure());
           }

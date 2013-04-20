@@ -18,7 +18,7 @@ package com.continuuity.weave.internal.state;
 import com.continuuity.weave.api.Command;
 
 /**
- *
+ * Factory class for creating instances of {@link Message}.
  */
 public final class Messages {
 

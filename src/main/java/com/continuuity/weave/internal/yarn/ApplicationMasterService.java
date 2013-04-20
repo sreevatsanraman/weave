@@ -136,7 +136,9 @@ public final class ApplicationMasterService implements Service {
     LOG.info("Maximum resource capability: " + maxCapability);
     LOG.info("Minimum resource capability: " + minCapability);
 
-    serviceDelegate.getZKClient().create("/" + runId + "/runnables", null, CreateMode.PERSISTENT).get();
+    // Creates ZK path for runnable and kafka logging service
+    Futures.allAsList(serviceDelegate.getZKClient().create("/" + runId + "/runnables", null, CreateMode.PERSISTENT),
+                      serviceDelegate.getZKClient().create("/" + runId + "/kafka", null, CreateMode.PERSISTENT)).get();
   }
 
   private void doStop() throws Exception {
@@ -233,12 +235,11 @@ public final class ApplicationMasterService implements Service {
 
       String runnableName = provisionRequest.getRuntimeSpec().getName();
       LOG.info("Starting runnable " + runnableName + " in container " + container);
-      DefaultProcessLauncher processLauncher = new DefaultProcessLauncher(container, yarnRPC, yarnConf);
-      WeaveContainerLauncher launcher = new WeaveContainerLauncher(weaveSpec, weaveSpecFile, runnableName,
-                                                                   RunIds.generate(), processLauncher,
-                                                                   ZKClients.namespace(serviceDelegate.getZKClient(),
-                                                                                       getZKNamespace(runnableName)),
-                                                                   getRunnableZKConnectStr(runnableName));
+      WeaveContainerLauncher launcher = new WeaveContainerLauncher(
+                                  weaveSpec, weaveSpecFile, runnableName, RunIds.generate(),
+                                  new DefaultProcessLauncher(container, yarnRPC, yarnConf, getKafkaZKConnect()),
+                                  ZKClients.namespace(serviceDelegate.getZKClient(), getZKNamespace(runnableName)),
+                                  getRunnableZKConnectStr(runnableName));
       launcher.start();
       launchers.add(launcher);
       // Needs to remove it from AMRMClient, otherwise later container requests will get accumulated with completed one
@@ -254,6 +255,10 @@ public final class ApplicationMasterService implements Service {
 
   private String getZKNamespace(String runnableName) {
     return String.format("/%s/runnables/%s", runId, runnableName);
+  }
+
+  private String getKafkaZKConnect() {
+    return String.format("%s/%s/kafka", zkConnectStr, runId);
   }
 
   private ListenableFuture<String> processMessage(String messageId, Message message) {

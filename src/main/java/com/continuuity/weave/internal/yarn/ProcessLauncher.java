@@ -43,6 +43,19 @@ public interface ProcessLauncher {
     }
 
     interface AfterResources {
+      EnvironmentAdder withEnvironment();
+
+      AfterEnvironment noEnvironment();
+    }
+
+    interface EnvironmentAdder {
+      <V> MoreEnvironment add(String key, V value);
+    }
+
+    interface MoreEnvironment extends EnvironmentAdder, AfterEnvironment {
+    }
+
+    interface AfterEnvironment {
       CommandAdder withCommands();
     }
 

@@ -15,12 +15,28 @@
  */
 package com.continuuity.weave.internal;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.SettableFuture;
+import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.InetAddress;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -31,6 +47,8 @@ public abstract class ServiceMain {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceMain.class);
 
   protected final void doMain(final Service service) throws ExecutionException, InterruptedException {
+    configureLogger();
+
     final String serviceName = service.getClass().getName();
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -78,6 +96,47 @@ public abstract class ServiceMain {
 
     // If container failed with exception, the future.get() will throws exception
     completion.get();
+  }
 
+  private void configureLogger() {
+    // Check if SLF4J is bound to logback in the current environment
+    ILoggerFactory loggerFactory = LoggerFactory.getILoggerFactory();
+    if (!(loggerFactory instanceof LoggerContext)) {
+      return;
+    }
+
+    LoggerContext context = (LoggerContext) loggerFactory;
+
+    JoranConfigurator configurator = new JoranConfigurator();
+    configurator.setContext(context);
+    context.reset();
+    doConfigure(configurator);
+  }
+
+  private void doConfigure(JoranConfigurator configurator) {
+    try {
+      Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        .parse(getClass().getClassLoader().getResourceAsStream("logback-template.xml"));
+
+      NodeList appenders = document.getElementsByTagName("appender");
+      for (int i = 0; i < appenders.getLength(); i++) {
+        Node node = appenders.item(i);
+        if ("KAFKA".equals(node.getAttributes().getNamedItem("name").getNodeValue())) {
+          Element hostname = document.createElement("hostname");
+          hostname.appendChild(document.createTextNode(InetAddress.getLocalHost().getCanonicalHostName()));
+          node.appendChild(hostname);
+        }
+      }
+
+      StringWriter result = new StringWriter();
+      try {
+        TransformerFactory.newInstance().newTransformer().transform(new DOMSource(document), new StreamResult(result));
+      } finally {
+        result.close();
+      }
+      configurator.doConfigure(new InputSource(new StringReader(result.toString())));
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
+    }
   }
 }

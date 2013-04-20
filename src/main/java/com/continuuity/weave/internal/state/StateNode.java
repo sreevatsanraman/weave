@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.internal.state;
 
-import com.continuuity.weave.api.WeaveController;
+import com.continuuity.weave.api.ServiceController;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -31,15 +31,15 @@ import java.lang.reflect.Type;
  */
 public final class StateNode {
 
-  private final WeaveController.State state;
+  private final ServiceController.State state;
   private final StackTraceElement[] stackTraces;
 
-  public StateNode(WeaveController.State state, StackTraceElement[] stackTraces) {
+  public StateNode(ServiceController.State state, StackTraceElement[] stackTraces) {
     this.state = state;
     this.stackTraces = stackTraces;
   }
 
-  public WeaveController.State getState() {
+  public ServiceController.State getState() {
     return state;
   }
 
@@ -66,7 +66,7 @@ public final class StateNode {
     public StateNode deserialize(JsonElement json, Type typeOfT,
                                  JsonDeserializationContext context) throws JsonParseException {
       JsonObject jsonObj = json.getAsJsonObject();
-      return new StateNode(WeaveController.State.valueOf(jsonObj.get("state").getAsString()),
+      return new StateNode(ServiceController.State.valueOf(jsonObj.get("state").getAsString()),
                            context.<StackTraceElement[]>deserialize(jsonObj.get("stackTraces"),
                                                                     StackTraceElement[].class));
     }

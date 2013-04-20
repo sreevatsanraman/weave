@@ -17,19 +17,16 @@ package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
-import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.JsonObject;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

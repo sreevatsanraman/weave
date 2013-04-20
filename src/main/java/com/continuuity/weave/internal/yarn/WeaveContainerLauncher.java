@@ -91,7 +91,7 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
       moreResources = moreResources.add(localFile.getName(), localRsc);
     }
 
-    controller = moreResources.withCommands()
+    controller = moreResources.noEnvironment().withCommands()
       .add("java",
            WeaveContainerMain.class.getName(),
            zkConnectStr,

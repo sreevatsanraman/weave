@@ -15,9 +15,9 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.weave.internal.logging.KafkaAppender;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.net.NetUtils;
@@ -51,11 +51,13 @@ final class DefaultProcessLauncher implements ProcessLauncher {
   private final Container container;
   private final YarnRPC yarnRPC;
   private final YarnConfiguration yarnConf;
+  private final String kafkaZKConnect;
 
-  DefaultProcessLauncher(Container container, YarnRPC yarnRPC, YarnConfiguration yarnConf) {
+  DefaultProcessLauncher(Container container, YarnRPC yarnRPC, YarnConfiguration yarnConf, String kafkaZKConnect) {
     this.container = container;
     this.yarnRPC = yarnRPC;
     this.yarnConf = yarnConf;
+    this.kafkaZKConnect = kafkaZKConnect;
   }
 
   @Override
@@ -77,6 +79,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
 
     private final ContainerLaunchContext launchContext;
     private final Map<String, LocalResource> localResources;
+    private final Map<String, String> environment;
     private final List<String> commands;
 
     PrepareLaunchContextImpl() {
@@ -85,6 +88,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
       launchContext.setResource(container.getResource());
 
       this.localResources = Maps.newHashMap();
+      this.environment = Maps.newHashMap();
       this.commands = Lists.newLinkedList();
     }
 
@@ -94,42 +98,73 @@ final class DefaultProcessLauncher implements ProcessLauncher {
       return new AfterUserImpl();
     }
 
-    private final class AfterUserImpl implements PrepareLaunchContext.AfterUser {
+    private final class AfterUserImpl implements AfterUser {
 
       @Override
-      public PrepareLaunchContext.ResourcesAdder withResources() {
+      public ResourcesAdder withResources() {
         return new MoreResourcesImpl();
       }
 
       @Override
-      public PrepareLaunchContext.AfterResources noResources() {
+      public AfterResources noResources() {
         return new MoreResourcesImpl();
       }
     }
 
-    private final class MoreResourcesImpl implements PrepareLaunchContext.MoreResources {
+    private final class MoreResourcesImpl implements MoreResources {
 
       @Override
-      public PrepareLaunchContext.MoreResources add(String name, LocalResource resource) {
+      public MoreResources add(String name, LocalResource resource) {
         localResources.put(name, resource);
         return this;
       }
 
       @Override
-      public PrepareLaunchContext.CommandAdder withCommands() {
+      public EnvironmentAdder withEnvironment() {
+        return finish();
+      }
+
+      @Override
+      public AfterEnvironment noEnvironment() {
+        return finish();
+      }
+
+      private MoreEnvironmentImpl finish() {
         launchContext.setLocalResources(localResources);
-        return new MoreCommandImpl();
+        return new MoreEnvironmentImpl();
       }
     }
 
-    private final class MoreCommandImpl implements PrepareLaunchContext.MoreCommand,
-                                                   PrepareLaunchContext.StdOutSetter,
-                                                   PrepareLaunchContext.StdErrSetter {
+    private final class MoreEnvironmentImpl implements MoreEnvironment {
+
+      @Override
+      public CommandAdder withCommands() {
+        // Defaulting extra environments
+        environment.put("YARN_CONTAINER_ID", container.getId().toString());
+        environment.put("YARN_CONTAINER_HOST", container.getNodeId().getHost());
+        environment.put("YARN_CONTAINER_PORT", Integer.toString(container.getNodeId().getPort()));
+        environment.put(KafkaAppender.KAFKA_ZK_CONNECT_KEY, kafkaZKConnect);
+
+        // TODO: Hack now
+        environment.put("CLASSPATH", System.getProperty("java.class.path"));
+
+        launchContext.setEnvironment(environment);
+        return new MoreCommandImpl();
+      }
+
+      @Override
+      public <V> MoreEnvironment add(String key, V value) {
+        environment.put(key, value.toString());
+        return this;
+      }
+    }
+
+    private final class MoreCommandImpl implements MoreCommand, StdOutSetter, StdErrSetter {
 
       private final StringBuilder commandBuilder = new StringBuilder();
 
       @Override
-      public PrepareLaunchContext.StdOutSetter add(String cmd, String... args) {
+      public StdOutSetter add(String cmd, String... args) {
         Joiner.on(' ').appendTo(commandBuilder, cmd, "", args);
         return this;
       }
@@ -138,13 +173,6 @@ final class DefaultProcessLauncher implements ProcessLauncher {
       public ProcessController launch() {
         LOG.info("Launching in container " + container.getId() + ": " + commands);
         launchContext.setCommands(commands);
-
-        // TODO: Hack now
-        launchContext.setEnvironment(ImmutableMap.of("CLASSPATH", System.getProperty("java.class.path"),
-                                                     "YARN_CONTAINER_ID", container.getId().toString(),
-                                                     "YARN_CONTAINER_HOST", container.getNodeId().getHost(),
-                                                     "YARN_CONTAINER_PORT", Integer.toString(container.getNodeId().getPort()
-        )));
 
         StartContainerRequest startRequest = Records.newRecord(StartContainerRequest.class);
         startRequest.setContainerLaunchContext(launchContext);
@@ -159,26 +187,26 @@ final class DefaultProcessLauncher implements ProcessLauncher {
       }
 
       @Override
-      public PrepareLaunchContext.MoreCommand redirectError(String stderr) {
+      public MoreCommand redirectError(String stderr) {
         commandBuilder.append(' ').append("2>").append(stderr);
         return noError();
       }
 
       @Override
-      public PrepareLaunchContext.MoreCommand noError() {
+      public MoreCommand noError() {
         commands.add(commandBuilder.toString());
         commandBuilder.setLength(0);
         return this;
       }
 
       @Override
-      public PrepareLaunchContext.StdErrSetter redirectOutput(String stdout) {
+      public StdErrSetter redirectOutput(String stdout) {
         commandBuilder.append(' ').append("1>").append(stdout);
         return this;
       }
 
       @Override
-      public PrepareLaunchContext.StdErrSetter noOutput() {
+      public StdErrSetter noOutput() {
         return this;
       }
     }
@@ -216,7 +244,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
 
     @Override
     public void status() {
-      //To change body of implemented methods use File | Settings | File Templates.
+      // TODO
     }
   }
 }

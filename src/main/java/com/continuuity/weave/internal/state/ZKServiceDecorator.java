@@ -16,7 +16,7 @@
 package com.continuuity.weave.internal.state;
 
 import com.continuuity.weave.api.RunId;
-import com.continuuity.weave.api.WeaveController;
+import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.internal.StackTraceElementCodec;
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.ForwardingZKClient;
@@ -110,7 +110,7 @@ public final class ZKServiceDecorator extends AbstractService {
       @Override
       public void onSuccess(State result) {
         // Create nodes for states and messaging
-        StateNode stateNode = new StateNode(WeaveController.State.STARTING, null);
+        StateNode stateNode = new StateNode(ServiceController.State.STARTING, null);
         createMessagesNode();
         final OperationFuture<String> stateFuture = zkClient.create(getZKPath("state"),
                                                                     encodeStateNode(stateNode),
@@ -225,7 +225,7 @@ public final class ZKServiceDecorator extends AbstractService {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Message received from " + path + ": " + new String(MessageCodec.encode(message), Charsets.UTF_8));
         }
-        if (message.getType() == Message.Type.SYSTEM && SystemMessages.STOP.equals(message)) {
+        if (message.getType() == Message.Type.SYSTEM && "stop".equalsIgnoreCase(message.getCommand().getCommand())) {
             decoratedService.stop().addListener(new Runnable() {
 
               @Override
@@ -337,20 +337,20 @@ public final class ZKServiceDecorator extends AbstractService {
     @Override
     public void starting() {
       LOG.info("Starting: " + id);
-      saveState(WeaveController.State.STARTING);
+      saveState(ServiceController.State.STARTING);
     }
 
     @Override
     public void running() {
       LOG.info("Running: " + id);
       notifyStarted();
-      saveState(WeaveController.State.RUNNING);
+      saveState(ServiceController.State.RUNNING);
     }
 
     @Override
     public void stopping(State from) {
       LOG.info("Stopping: " + id);
-      saveState(WeaveController.State.STOPPING);
+      saveState(ServiceController.State.STOPPING);
     }
 
     @Override
@@ -359,7 +359,7 @@ public final class ZKServiceDecorator extends AbstractService {
       if (zkFailure) {
         return;
       }
-      StateNode stateNode = new StateNode(WeaveController.State.TERMINATED, null);
+      StateNode stateNode = new StateNode(ServiceController.State.TERMINATED, null);
       Futures.addCallback(stopServiceOnComplete(zkClient.setData(getZKPath("state"),
                                                                  encodeStateNode(stateNode)),
                                                 zkClient),
@@ -383,7 +383,7 @@ public final class ZKServiceDecorator extends AbstractService {
         return;
       }
 
-      StateNode stateNode = new StateNode(WeaveController.State.FAILED, failure.getStackTrace());
+      StateNode stateNode = new StateNode(ServiceController.State.FAILED, failure.getStackTrace());
       stopServiceOnComplete(zkClient.setData(getZKPath("state"),
                                              encodeStateNode(stateNode)),
                             zkClient).addListener(new Runnable() {
@@ -394,7 +394,7 @@ public final class ZKServiceDecorator extends AbstractService {
       }, SAME_THREAD_EXECUTOR);
     }
 
-    private void saveState(WeaveController.State state) {
+    private void saveState(ServiceController.State state) {
       if (zkFailure) {
         return;
       }

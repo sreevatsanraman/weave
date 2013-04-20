@@ -15,6 +15,8 @@
  */
 package com.continuuity.weave.api.logging;
 
+import com.google.common.base.Splitter;
+
 import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -55,10 +57,10 @@ public final class PrinterLogHandler implements LogHandler {
     formatter.format("%s %-5s %s [%s] [%s] %s:%s(%s:%d) - %s\n",
                      utc,
                      logEntry.getLogLevel().name(),
-                     logEntry.getLoggerName(),
+                     getShortenLoggerName(logEntry.getLoggerName()),
                      logEntry.getHost(),
                      logEntry.getThreadName(),
-                     logEntry.getSourceClassName(),
+                     getSimpleClassName(logEntry.getSourceClassName()),
                      logEntry.getSourceMethodName(),
                      logEntry.getFileName(),
                      logEntry.getLineNumber(),
@@ -77,5 +79,21 @@ public final class PrinterLogHandler implements LogHandler {
 
   private String timestampToUTC(long timestamp) {
     return DATE_FORMAT.get().format(new Date(timestamp));
+  }
+
+  private String getShortenLoggerName(String loggerName) {
+    StringBuilder builder = new StringBuilder();
+    String previous = null;
+    for (String part : Splitter.on('.').split(loggerName)) {
+      if (previous != null) {
+        builder.append(previous.charAt(0)).append('.');
+      }
+      previous = part;
+    }
+    return builder.append(previous).toString();
+  }
+
+  private String getSimpleClassName(String className) {
+    return className.substring(className.lastIndexOf('.') + 1);
   }
 }

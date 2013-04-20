@@ -1,5 +1,6 @@
 package com.continuuity.weave;
 
+import com.continuuity.weave.api.ListenerAdapter;
 import com.continuuity.weave.api.WeaveApplication;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.WeaveRunnerService;
@@ -7,16 +8,19 @@ import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
 import com.continuuity.weave.internal.yarn.YarnWeaveRunnerService;
 import com.continuuity.weave.zk.InMemoryZKServer;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.log4j.Level;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.PrintWriter;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -45,10 +49,19 @@ public class EchoServerTest {
     WeaveController controller = weaveRunner.prepare(new EchoServer(54321))
                                             .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
                                             .start();
-//    controller.waitFor(30, TimeUnit.MINUTES);
-    System.out.println("Stopping");
+
+    final CountDownLatch running = new CountDownLatch(1);
+    controller.addListener(new ListenerAdapter() {
+      @Override
+      public void running() {
+        running.countDown();
+      }
+    }, MoreExecutors.sameThreadExecutor());
+
+    Assert.assertTrue(running.await(30, TimeUnit.SECONDS));
+    TimeUnit.SECONDS.sleep(10);
+
     controller.stop().get();
-    System.out.println("Stopped");
   }
 
   @Before

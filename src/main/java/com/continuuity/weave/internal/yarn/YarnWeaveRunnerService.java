@@ -33,7 +33,6 @@ import com.continuuity.weave.internal.api.DefaultWeaveSpecification;
 import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
-import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,8 +41,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
-import com.google.common.io.LineReader;
-import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.AbstractIdleService;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -65,12 +62,10 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -104,8 +99,6 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
   public WeavePreparer prepare(WeaveApplication application) {
     final WeaveSpecification weaveSpec = addKafka(application.configure());
     final List<Closeable> resourceCleaner = Lists.newArrayList();
-
-    // TODO: Hack
     final Queue<LogHandler> logHandlers = new ConcurrentLinkedQueue<LogHandler>();
 
     return new WeavePreparer() {
@@ -158,10 +151,8 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
           appSubmissionContext.setAMContainerSpec(containerLaunchContext);
 
           yarnClient.submitApplication(appSubmissionContext);
-          final LogPoller logPoller = new LogPoller(weaveSpec, logHandlers);
-          logPoller.start();
 
-          return createController(runId, logPoller);
+          return createController(runId, logHandlers);
         } catch (Exception e) {
           throw Throwables.propagate(e);
         }
@@ -169,8 +160,8 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
     };
   }
 
-  private WeaveController createController(RunId runId, LogPoller logPoller) {
-    ZKWeaveController controller = new ZKWeaveController(zkConnectStr, 10000, runId);
+  private WeaveController createController(RunId runId, Collection<LogHandler> logHandlers) {
+    ZKWeaveController controller = new ZKWeaveController(zkConnectStr, 10000, runId, logHandlers);
     controller.start();
     return controller;
   }
@@ -178,7 +169,7 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
   @Override
   public WeaveController lookup(RunId runId) {
     // TODO: Check if the runId presences in ZK.
-    return new ZKWeaveController(zkConnectStr, 10000, runId);
+    return new ZKWeaveController(zkConnectStr, 10000, runId, ImmutableList.<LogHandler>of());
   }
 
   @Override
@@ -312,53 +303,6 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
       return target;
     } finally {
       is.close();
-    }
-  }
-
-  // TODO: This is for hack
-  private static final class LogPoller extends AbstractExecutionThreadService {
-
-    private final WeaveSpecification weaveSpec;
-    private final Queue<LogHandler> handlers;
-    private volatile boolean stop = false;
-
-    private LogPoller(WeaveSpecification weaveSpec, Queue<LogHandler> handlers) {
-      this.weaveSpec = weaveSpec;
-      this.handlers = handlers;
-    }
-
-    @Override
-    protected void run() throws Exception {
-      List<LineReader> readers = Lists.newArrayList();
-      Queue<File> files = Lists.newLinkedList();
-      for (String name : weaveSpec.getRunnables().keySet()) {
-        if (name.startsWith("kafka")) {
-          continue;
-        }
-        files.add(new File("/tmp/container." + name + ".out"));
-      }
-
-      while (!stop) {
-        Iterator<File> itor = files.iterator();
-        while (itor.hasNext()) {
-          File file = itor.next();
-          try {
-            readers.add(new LineReader(Files.newReader(file, Charsets.UTF_8)));
-            itor.remove();
-          } catch (IOException e) {
-            // OK to Ignore
-          }
-        }
-
-        for (LineReader reader : readers) {
-          String line = reader.readLine();
-          while (line != null) {
-            System.out.println(line);
-            line = reader.readLine();
-          }
-        }
-        TimeUnit.SECONDS.sleep(1);
-      }
     }
   }
 }

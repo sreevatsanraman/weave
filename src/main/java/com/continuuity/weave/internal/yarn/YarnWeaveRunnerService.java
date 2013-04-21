@@ -135,14 +135,15 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
 
           RunId runId = RunIds.generate();
           containerLaunchContext.setCommands(
-            ImmutableList.of("java",
-                             ApplicationMasterMain.class.getName(),
-                             zkConnectStr,
-                             "weaveSpec.json",
-                             runId.getId()));
+            ImmutableList.of("java", ApplicationMasterMain.class.getName()));
 
           // TODO: Should figure out jar dependencies
-          containerLaunchContext.setEnvironment(ImmutableMap.of("CLASSPATH", System.getProperty("java.class.path")));
+          containerLaunchContext.setEnvironment(ImmutableMap.of(
+            "CLASSPATH", System.getProperty("java.class.path"),
+            EnvKeys.WEAVE_CONTAINER_ZK, zkConnectStr,
+            EnvKeys.WEAVE_SPEC_PATH, "weaveSpec.json",
+            EnvKeys.WEAVE_RUN_ID, runId.getId()
+          ));
           Resource capability = Records.newRecord(Resource.class);
           capability.setMemory(256);
           containerLaunchContext.setResource(capability);

@@ -38,13 +38,13 @@ public abstract class AbstractWeaveRunnable implements WeaveRunnable {
   public WeaveRunnableSpecification configure() {
     return WeaveRunnableSpecification.Builder.with()
       .setName(getClass().getSimpleName())
-      .withArguments(args)
+      .withConfigs(args)
       .build();
   }
 
   @Override
   public void initialize(WeaveContext context) {
-    this.args = context.getSpecification().getArguments();
+    this.args = context.getSpecification().getConfigs();
   }
 
   @Override

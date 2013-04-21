@@ -141,7 +141,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
         environment.put(EnvKeys.YARN_CONTAINER_ID, container.getId().toString());
         environment.put(EnvKeys.YARN_CONTAINER_HOST, container.getNodeId().getHost());
         environment.put(EnvKeys.YARN_CONTAINER_PORT, Integer.toString(container.getNodeId().getPort()));
-        environment.put(EnvKeys.KAFKA_ZK_CONNECT, kafkaZKConnect);
+        environment.put(EnvKeys.WEAVE_LOG_KAFKA_ZK, kafkaZKConnect);
 
         // TODO: Hack now
         environment.put("CLASSPATH", System.getProperty("java.class.path"));

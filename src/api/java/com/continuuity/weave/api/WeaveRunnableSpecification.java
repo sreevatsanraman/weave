@@ -29,7 +29,7 @@ public interface WeaveRunnableSpecification {
 
   String getName();
 
-  Map<String, String> getArguments();
+  Map<String, String> getConfigs();
 
   public static final class Builder {
 
@@ -48,18 +48,18 @@ public interface WeaveRunnableSpecification {
     }
 
     public final class AfterName {
-      public AfterArguments withArguments(Map<String, String> args) {
+      public AfterConfigs withConfigs(Map<String, String> args) {
         Builder.this.args = args;
-        return new AfterArguments();
+        return new AfterConfigs();
       }
 
-      public AfterArguments noArguments() {
+      public AfterConfigs noConfigs() {
         Builder.this.args = ImmutableMap.of();
-        return new AfterArguments();
+        return new AfterConfigs();
       }
     }
 
-    public final class AfterArguments {
+    public final class AfterConfigs {
       public WeaveRunnableSpecification build() {
         return new DefaultWeaveRunnableSpecification(null, name, args);
       }

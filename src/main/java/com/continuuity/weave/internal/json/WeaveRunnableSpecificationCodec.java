@@ -23,7 +23,6 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
@@ -42,7 +41,7 @@ final class WeaveRunnableSpecificationCodec implements JsonSerializer<WeaveRunna
 
     json.addProperty("classname", src.getClassName());
     json.addProperty("name", src.getName());
-    json.add("arguments", context.serialize(src.getArguments(), new TypeToken<Map<String, String>>(){}.getType()));
+    json.add("arguments", context.serialize(src.getConfigs(), new TypeToken<Map<String, String>>(){}.getType()));
 
     return json;
   }

@@ -129,7 +129,7 @@ public interface WeaveSpecification {
       public RuntimeSpecificationAdder add(String name, WeaveRunnable runnable,
                                            final ResourceSpecification resourceSpec) {
         final WeaveRunnableSpecification spec = new DefaultWeaveRunnableSpecification(
-                                            runnable.getClass().getName(), name, runnable.configure().getArguments());
+                                            runnable.getClass().getName(), name, runnable.configure().getConfigs());
         return new RuntimeSpecificationAdder(new Function<Collection<LocalFile>, RunnableSetter>() {
           @Override
           public RunnableSetter apply(Collection<LocalFile> files) {

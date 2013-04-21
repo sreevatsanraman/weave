@@ -48,14 +48,14 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
   public WeaveRunnableSpecification configure() {
     return WeaveRunnableSpecification.Builder.with()
       .setName("kafka")
-      .withArguments(ImmutableMap.of("kafkaDir", kafkaDir))
+      .withConfigs(ImmutableMap.of("kafkaDir", kafkaDir))
       .build();
   }
 
   @Override
   public void initialize(WeaveContext context) {
-    Map<String,String> args = context.getSpecification().getArguments();
-    String zkConnectStr = System.getenv(EnvKeys.KAFKA_ZK_CONNECT);
+    Map<String,String> args = context.getSpecification().getConfigs();
+    String zkConnectStr = System.getenv(EnvKeys.WEAVE_LOG_KAFKA_ZK);
 
     try {
       ClassLoader classLoader = getClassLoader(new File(args.get("kafkaDir")));

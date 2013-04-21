@@ -38,7 +38,7 @@ public final class DefaultWeaveRunnableSpecification implements WeaveRunnableSpe
   public DefaultWeaveRunnableSpecification(String className, WeaveRunnableSpecification other) {
     this.className = className;
     this.name = other.getName();
-    this.arguments = ImmutableMap.copyOf(other.getArguments());
+    this.arguments = ImmutableMap.copyOf(other.getConfigs());
   }
 
   @Override
@@ -52,7 +52,7 @@ public final class DefaultWeaveRunnableSpecification implements WeaveRunnableSpe
   }
 
   @Override
-  public Map<String, String> getArguments() {
+  public Map<String, String> getConfigs() {
     return arguments;
   }
 }

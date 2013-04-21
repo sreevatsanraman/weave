@@ -18,12 +18,10 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.api.RunIds;
-import com.google.common.base.Preconditions;
 
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Main class for launching {@link ApplicationMasterService}.
@@ -38,18 +36,13 @@ public final class ApplicationMasterMain extends ServiceMain {
 
   /**
    * Starts the application master.
-   * @param args args[0] - ZooKeeper connection string.
-   *             args[1] - local resource name for spec file.
-   *             args[2] - RunId.
-   * @throws ExecutionException
-   * @throws InterruptedException
    */
   public static void main(String[] args) throws Exception {
-    Preconditions.checkArgument(args.length >= 3, "Incorrect argument size.");
-    String zkConnect = args[0];
-    RunId runId = RunIds.fromString(args[2]);
+    String zkConnect = System.getenv(EnvKeys.WEAVE_CONTAINER_ZK);
+    File weaveSpec = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
+    RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
     new ApplicationMasterMain(String.format("%s/%s/kafka", zkConnect, runId))
-      .doMain(new ApplicationMasterService(runId, zkConnect, new File(args[1])));
+      .doMain(new ApplicationMasterService(runId, zkConnect, weaveSpec));
   }
 
   @Override

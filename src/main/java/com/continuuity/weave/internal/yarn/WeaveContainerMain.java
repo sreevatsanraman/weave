@@ -23,6 +23,7 @@ import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +48,10 @@ public final class WeaveContainerMain extends ServiceMain {
     WeaveSpecification weaveSpec = loadWeaveSpec(weaveSpecFile);
     WeaveRunnableSpecification runnableSpec = weaveSpec.getRunnables().get(runnableName).getRunnableSpecification();
     new WeaveContainerMain().doMain(new WeaveContainerService(zkConnectStr, runId,
-                                                              runnableSpec, ClassLoader.getSystemClassLoader()));
+                                                              runnableSpec, ClassLoader.getSystemClassLoader(),
+                                                              args,
+                                                              decodeArgs(System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS))
+                                                              ));
   }
 
   private static WeaveSpecification loadWeaveSpec(File specFile) throws IOException {
@@ -57,6 +61,10 @@ public final class WeaveContainerMain extends ServiceMain {
     } finally {
       reader.close();
     }
+  }
+
+  private static String[] decodeArgs(String args) {
+    return new Gson().fromJson(args, String[].class);
   }
 
   @Override

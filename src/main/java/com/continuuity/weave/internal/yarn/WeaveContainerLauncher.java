@@ -23,6 +23,7 @@ import com.continuuity.weave.internal.state.MessageCodec;
 import com.continuuity.weave.internal.state.SystemMessages;
 import com.continuuity.weave.internal.utils.YarnUtils;
 import com.continuuity.zookeeper.ZKClient;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -52,6 +53,8 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
   private final ProcessLauncher processLauncher;
   private final ZKClient zkClient;
   private final String zkConnectStr;
+  private final Iterable<String> args;
+  private final String applicationArgs;
   private ProcessLauncher.ProcessController controller;
 
   public WeaveContainerLauncher(WeaveSpecification weaveSpec,
@@ -60,7 +63,9 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
                                 RunId runId,
                                 ProcessLauncher processLauncher,
                                 ZKClient zkClient,
-                                String zkConnectStr) {
+                                String zkConnectStr,
+                                Iterable<String> args,
+                                String applicationArgs) {
     this.weaveSpec = weaveSpec;
     this.weaveSpecFile = weaveSpecFile;
     this.runnableName = runnableName;
@@ -69,6 +74,8 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
     // TODO: This is hacky to pass around a ZKClient like this
     this.zkClient = zkClient;
     this.zkConnectStr = zkConnectStr;
+    this.args = args;
+    this.applicationArgs = applicationArgs;
   }
 
   @Override
@@ -88,14 +95,19 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
       moreResources = moreResources.add(localFile.getName(), localRsc);
     }
 
+    ;
     controller = moreResources
       .withEnvironment()
         .add(EnvKeys.WEAVE_CONTAINER_ZK, zkConnectStr)
         .add(EnvKeys.WEAVE_SPEC_PATH, "weave.spec")
         .add(EnvKeys.WEAVE_RUN_ID, runId.getId())
         .add(EnvKeys.WEAVE_RUNNABLE_NAME, runnableName)
+        .add(EnvKeys.WEAVE_APPLICATION_ARGS, applicationArgs)
       .withCommands()
-        .add("java",WeaveContainerMain.class.getName())
+        .add("java",
+             ImmutableList.<String>builder()
+               .add(WeaveContainerMain.class.getName())
+               .addAll(args).build().toArray(new String[0]))
       .noOutput().noError()
       .launch();
   }

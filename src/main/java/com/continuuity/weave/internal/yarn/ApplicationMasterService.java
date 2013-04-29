@@ -27,17 +27,21 @@ import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -81,6 +85,7 @@ public final class ApplicationMasterService implements Service {
   private final String zkConnectStr;
   private final WeaveSpecification weaveSpec;
   private final File weaveSpecFile;
+  private final ListMultimap<String, String> runnableArgs;
   private final YarnConfiguration yarnConf;
   private final String masterContainerId;
   private final AMRMClient amrmClient;
@@ -96,6 +101,7 @@ public final class ApplicationMasterService implements Service {
     this.zkConnectStr = zkConnectStr;
     this.weaveSpecFile = weaveSpecFile;
     this.weaveSpec = WeaveSpecificationAdapter.create().fromJson(weaveSpecFile);
+    this.runnableArgs = decodeRunnableArgs();
 
     this.yarnConf = new YarnConfiguration();
     this.launchers = new ConcurrentLinkedQueue<WeaveContainerLauncher>();
@@ -108,6 +114,18 @@ public final class ApplicationMasterService implements Service {
     Preconditions.checkArgument(masterContainerId != null,
                                 "Missing %s from environment", ApplicationConstants.AM_CONTAINER_ID_ENV);
     amrmClient = new AMRMClientImpl(ConverterUtils.toContainerId(masterContainerId).getApplicationAttemptId());
+  }
+
+  private ListMultimap<String, String> decodeRunnableArgs() throws IOException {
+    ListMultimap<String, String> result = ArrayListMultimap.create();
+
+    Map<String, Collection<String>> decoded = new Gson().fromJson(System.getenv(EnvKeys.WEAVE_RUNNABLE_ARGS),
+                                                                  new TypeToken<Map<String, Collection<String>>>() {
+                                                                  }.getType());
+    for (Map.Entry<String, Collection<String>> entry : decoded.entrySet()) {
+      result.putAll(entry.getKey(), entry.getValue());
+    }
+    return result;
   }
 
   private Supplier<? extends JsonElement> createLiveNodeDataSupplier() {
@@ -239,7 +257,8 @@ public final class ApplicationMasterService implements Service {
                                   weaveSpec, weaveSpecFile, runnableName, RunIds.generate(),
                                   new DefaultProcessLauncher(container, yarnRPC, yarnConf, getKafkaZKConnect()),
                                   ZKClients.namespace(serviceDelegate.getZKClient(), getZKNamespace(runnableName)),
-                                  getRunnableZKConnectStr(runnableName));
+                                  getRunnableZKConnectStr(runnableName),
+                                  runnableArgs.get(runnableName), System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS));
       launcher.start();
       launchers.add(launcher);
       // Needs to remove it from AMRMClient, otherwise later container requests will get accumulated with completed one

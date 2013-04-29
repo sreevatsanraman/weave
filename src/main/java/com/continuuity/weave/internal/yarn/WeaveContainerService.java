@@ -57,7 +57,9 @@ public final class WeaveContainerService implements Service {
   public WeaveContainerService(String zkConnectionStr,
                                RunId runId,
                                WeaveRunnableSpecification specification,
-                               ClassLoader classLoader) throws UnknownHostException {
+                               ClassLoader classLoader,
+                               final String[] args,
+                               final String[] applicationArgs) throws UnknownHostException {
     this.specification = specification;
     this.classLoader = classLoader;
     this.serviceDelegate = new ZKServiceDecorator(zkConnectionStr, ZK_TIMEOUT, runId,
@@ -67,6 +69,16 @@ public final class WeaveContainerService implements Service {
       @Override
       public InetAddress getHost() {
         return containerInfo.getHost();
+      }
+
+      @Override
+      public String[] getArguments() {
+        return args;
+      }
+
+      @Override
+      public String[] getApplicationArguments() {
+        return applicationArgs;
       }
 
       @Override

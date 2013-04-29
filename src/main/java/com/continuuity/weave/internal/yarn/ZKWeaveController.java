@@ -28,6 +28,7 @@ import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClientService;
 import com.continuuity.zookeeper.ZKClientServices;
 import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -39,7 +40,6 @@ import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
@@ -59,7 +59,7 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
   private final KafkaClient kafkaClient;
   private final Thread logPoller;
 
-  ZKWeaveController(String zkConnect, int zkTimeout, RunId runId, Collection<LogHandler> logHandlers) {
+  ZKWeaveController(String zkConnect, int zkTimeout, RunId runId, Iterable<LogHandler> logHandlers) {
     super(runId);
     // Creates a retry on failure zk client
     this.zkClient = ZKClientServices.reWatchOnExpire(
@@ -67,7 +67,8 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
                                         .setSessionTimeout(zkTimeout)
                                         .build(),
                                       RetryStrategies.exponentialDelay(100, 2000, TimeUnit.MILLISECONDS)));
-    this.logHandlers = new ConcurrentLinkedQueue<LogHandler>(logHandlers);
+    this.logHandlers = new ConcurrentLinkedQueue<LogHandler>();
+    Iterables.addAll(this.logHandlers, logHandlers);
     this.kafkaClient = new SimpleKafkaClient(String.format("%s/%s/kafka", zkConnect, runId));
     this.logPoller = createLogPoller();
   }

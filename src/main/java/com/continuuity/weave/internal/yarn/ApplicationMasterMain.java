@@ -59,4 +59,9 @@ public final class ApplicationMasterMain extends ServiceMain {
   protected String getKafkaZKConnect() {
     return kafkaZKConnect;
   }
+
+  @Override
+  protected File getLogBackTemplate() {
+    return new File(System.getenv(EnvKeys.WEAVE_LOGBACK_PATH));
+  }
 }

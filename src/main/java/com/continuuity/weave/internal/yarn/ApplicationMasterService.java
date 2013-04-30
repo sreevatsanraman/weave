@@ -254,7 +254,9 @@ public final class ApplicationMasterService implements Service {
       String runnableName = provisionRequest.getRuntimeSpec().getName();
       LOG.info("Starting runnable " + runnableName + " in container " + container);
       WeaveContainerLauncher launcher = new WeaveContainerLauncher(
-                                  weaveSpec, weaveSpecFile, runnableName, RunIds.generate(),
+                                  weaveSpec, weaveSpecFile, new File(System.getenv(EnvKeys.WEAVE_CONTAINER_JAR_PATH)),
+                                  new File(System.getenv(EnvKeys.WEAVE_LOGBACK_PATH)),
+                                  runnableName, RunIds.generate(),
                                   new DefaultProcessLauncher(container, yarnRPC, yarnConf, getKafkaZKConnect()),
                                   ZKClients.namespace(serviceDelegate.getZKClient(), getZKNamespace(runnableName)),
                                   getRunnableZKConnectStr(runnableName),

@@ -41,8 +41,6 @@ public class DistributeShellTest {
 
   @Before
   public void init() {
-    org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
-
     // Starts Zookeeper
     zkServer = InMemoryZKServer.builder().build();
     zkServer.startAndWait();

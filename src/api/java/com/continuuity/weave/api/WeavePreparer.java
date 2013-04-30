@@ -18,7 +18,7 @@ package com.continuuity.weave.api;
 import com.continuuity.weave.api.logging.LogHandler;
 
 /**
- *
+ * This interface exposes methods to setup the weave runtime environment and to start weave application.
  */
 public interface WeavePreparer {
 
@@ -66,6 +66,22 @@ public interface WeavePreparer {
    * @return This {@link WeavePreparer}.
    */
   WeavePreparer withArguments(String runnableName, Iterable<String> args);
+
+  /**
+   * Adds extra classes that the application is depended on and is not traceable from the application itself.
+   * E.g. Class name used in {@link Class#forName(String)}.
+   * @param classes set of classes to add to dependency list for generating the deployment jar.
+   * @return This {@link WeavePreparer}.
+   */
+  WeavePreparer withDependencies(Class<?>...classes);
+
+  /**
+   * Adds extra classes that the application is depended on and is not traceable from the application itself.
+   * E.g. Class name used in {@link Class#forName(String)}.
+   * @param classes set of classes to add to dependency list for generating the deployment jar.
+   * @return This {@link WeavePreparer}.
+   */
+  WeavePreparer withDependencies(Iterable<Class<?>> classes);
 
   /**
    * Starts the application.

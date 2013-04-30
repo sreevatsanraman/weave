@@ -22,7 +22,7 @@ import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
 
 /**
- *
+ * A simple {@link WeaveApplication} that contains only one {@link WeaveRunnable}.
  */
 public class SingleRunnableApplication implements WeaveApplication {
 

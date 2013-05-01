@@ -74,25 +74,4 @@ public class InMemoryDiscoveryService extends AbstractIdleService implements Dis
       }
     };
   }
-
-  private static final class DiscoverableWrapper implements Discoverable {
-
-    private final String name;
-    private final InetSocketAddress address;
-
-    private DiscoverableWrapper(Discoverable discoverable) {
-      this.name = discoverable.getName();
-      this.address = discoverable.getSocketAddress();
-    }
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public InetSocketAddress getSocketAddress() {
-      return address;
-    }
-  }
 }

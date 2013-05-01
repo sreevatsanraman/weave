@@ -19,6 +19,7 @@ import com.continuuity.weave.internal.utils.Dependencies;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -50,8 +51,8 @@ public final class ApplicationBundler {
   private final List<String> includePackages;
 
   public ApplicationBundler(Iterable<String> excludePackages, Iterable<String> includePackages) {
-    this.excludePackages = Lists.newArrayList(excludePackages);
-    this.includePackages = Lists.newArrayList(includePackages);
+    this.excludePackages = ImmutableList.copyOf(excludePackages);
+    this.includePackages = ImmutableList.copyOf(includePackages);
   }
 
   public void createBundle(File targetFile, Iterable<Class<?>> classes) throws IOException {

@@ -55,6 +55,7 @@ public final class Instances {
    * @param <T> Type of the class
    * @return An instance of type {@code <T>}
    */
+  @SuppressWarnings("unchecked")
   public static <T> T newInstance(Class<T> clz) {
     try {
       try {

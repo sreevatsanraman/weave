@@ -20,7 +20,7 @@ import java.io.OutputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- *
+ * A {@link MessageSetEncoder} that compress message set using GZIP.
  */
 final class GZipMessageSetEncoder extends AbstractCompressedMessageSetEncoder {
 

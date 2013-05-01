@@ -42,9 +42,9 @@ public final class Dependencies {
 
   /**
    * Finds the class dependencies of the given class.
-   * @param classesToResolve
-   * @param acceptor
-   * @throws IOException
+   * @param classesToResolve Classes for looking for dependencies.
+   * @param acceptor Predicate to accept a found class.
+   * @throws IOException Thrown where there is error when loading in class bytecode.
    */
   public static void findClassDependencies(Iterable<Class<?>> classesToResolve,
                                            final Predicate<Class<?>> acceptor) throws IOException {

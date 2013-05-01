@@ -32,13 +32,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Service;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -76,6 +74,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *   and also for discovering the registered services.
  *   <blockquote>
  *    <pre>
+ *      {@code
+ *
  *      DiscoveryService service = new ZKDiscoveryService(zkQuorum);
  *      service.startAndWait();
  *      service.register(new Discoverable() {
@@ -93,6 +93,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *      ...
  *      Iterable<Discoverable> services = service.discovery("service-name");
  *      ...
+ *      }
  *    </pre>
  *   </blockquote>
  * </p>

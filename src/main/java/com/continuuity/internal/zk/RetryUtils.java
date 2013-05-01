@@ -40,10 +40,7 @@ final class RetryUtils {
    * @return {@code true} if the operation can be retried.
    */
   public static boolean canRetry(Throwable t) {
-    if (!(t instanceof KeeperException)) {
-      return false;
-    }
-    return canRetry(((KeeperException)t).code());
+    return t instanceof KeeperException && canRetry(((KeeperException) t).code());
   }
 
   private RetryUtils() {

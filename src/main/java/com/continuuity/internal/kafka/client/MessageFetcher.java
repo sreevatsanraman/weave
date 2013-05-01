@@ -114,7 +114,7 @@ final class MessageFetcher extends AbstractIterator<FetchedMessage> implements R
 
     ChannelBuffer payload = buffer.readSlice(size - (buffer.readerIndex() - readerIdx));
 
-    // TODO: verify CRC?
+    // Verify CRC?
     enqueueMessage(compression, payload, nextOffset);
   }
 

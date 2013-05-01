@@ -46,8 +46,8 @@ import java.util.Set;
 import java.util.SortedMap;
 
 /**
-*
-*/
+ * A Service to cache kafka broker information by subscribing to ZooKeeper.
+ */
 final class KafkaBrokerCache extends AbstractIdleService {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaBrokerCache.class);

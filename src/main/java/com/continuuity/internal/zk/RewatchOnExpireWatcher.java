@@ -58,7 +58,6 @@ final class RewatchOnExpireWatcher implements Watcher {
 
   /**
    * Sets the result from the operation that causes this watcher to be set.
-   * @param result
    */
   void setLastResult(Object result) {
     lastResult.compareAndSet(null, result, false, true);

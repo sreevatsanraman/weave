@@ -32,7 +32,6 @@ dependencies {
   compile libraries.jsr_305
   compile libraries.google_gson
   compile libraries.google_guava
-  compile libraries.google_guice
   compile (libraries.hadoop_common) {
     exclude group: 'commons-logging'
   }

@@ -115,9 +115,7 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
                .add("-cp").add("container.jar")
                .add(WeaveContainerMain.class.getName())
                .addAll(args).build().toArray(new String[0]))
-//      .noOutput().noError()
-      .redirectOutput("/tmp/" + runnableName + ".out")
-      .redirectError("/tmp/" + runnableName + ".err")
+      .noOutput().noError()
       .launch();
   }
 

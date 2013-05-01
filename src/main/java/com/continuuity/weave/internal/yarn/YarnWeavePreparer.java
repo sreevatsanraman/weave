@@ -158,8 +158,7 @@ final class YarnWeavePreparer implements WeavePreparer {
 
       RunId runId = RunIds.generate();
       containerLaunchContext.setCommands(ImmutableList.of(
-        "java", "-cp", "appMaster.jar", ApplicationMasterMain.class.getName(),
-        "1>/tmp/out", "2>/tmp/err"
+        "java", "-cp", "appMaster.jar", ApplicationMasterMain.class.getName()
       ));
 
       containerLaunchContext.setEnvironment(ImmutableMap.<String, String>builder()

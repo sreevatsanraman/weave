@@ -16,21 +16,20 @@
 package com.continuuity.weave.internal;
 
 import com.continuuity.weave.internal.utils.Dependencies;
-import com.google.common.base.Predicate;
+import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
-import org.objectweb.asm.Type;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
@@ -43,18 +42,34 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
 /**
- *
+ * This class builds jar files based on class dependencies.
  */
 public final class ApplicationBundler {
 
   private final List<String> excludePackages;
   private final List<String> includePackages;
 
+  /**
+   * Constructs a ApplicationBundler.
+   *
+   * @param excludePackages Class packages to exclude
+   * @param includePackages Always includes classes/resources in these packages. Note that
+   *                        classes in these packages will not get inspected for dependencies.
+   */
   public ApplicationBundler(Iterable<String> excludePackages, Iterable<String> includePackages) {
     this.excludePackages = ImmutableList.copyOf(excludePackages);
     this.includePackages = ImmutableList.copyOf(includePackages);
   }
 
+  /**
+   * Creates a jar file which includes all the given classes and all the classes that they depended on.
+   * The jar will also include all classes and resources under the packages as given as include packages
+   * in the constructor.
+   *
+   * @param targetFile Where to save the target jar file.
+   * @param classes Set of classes to start the dependency traversal.
+   * @throws IOException
+   */
   public void createBundle(File targetFile, Iterable<Class<?>> classes) throws IOException {
     final Set<String> entries = Sets.newHashSet();
     final JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(targetFile));
@@ -63,48 +78,54 @@ public final class ApplicationBundler {
 
       // Add all classes under the packages as listed in includePackages
       for (String pkg : includePackages) {
-        findPackageClasses(pkg, entries, jarOut);
+        copyPackage(pkg, entries, jarOut);
       }
-
     } finally {
       jarOut.close();
     }
 
   }
 
+  /**
+   * Same as calling {@link #createBundle(java.io.File, Iterable)}.
+   */
   public void createBundle(File targetFile, Class<?> clz, Class<?>...classes) throws IOException {
     createBundle(targetFile, ImmutableSet.<Class<?>>builder().add(clz).add(classes).build());
   }
 
   private void findDependencies(Iterable<Class<?>> classes,
                                 final Set<String> entries, final JarOutputStream jarOut) throws IOException {
-    Dependencies.findClassDependencies(ImmutableSet.copyOf(classes), new Predicate<Class<?>>() {
+
+    Iterable<String> classNames = Iterables.transform(classes, new Function<Class<?>, String>() {
       @Override
-      public boolean apply(Class<?> input) {
-        ClassLoader classLoader = input.getClassLoader();
-        if (classLoader == null) {
-          return false;
-        }
-        String className = input.getName();
+      public String apply(Class<?> input) {
+        return input.getName();
+      }
+    });
+    Dependencies.findClassDependencies(Thread.currentThread().getContextClassLoader(), classNames,
+                                       new Dependencies.ClassAcceptor() {
+      @Override
+      public boolean accept(String className, byte[] bytecode) {
         for (String exclude : excludePackages) {
           if (className.startsWith(exclude)) {
             return false;
           }
         }
-
-        String internalName = Type.getInternalName(input);
-        putDirEntry(internalName.substring(0, internalName.lastIndexOf('/')), entries, jarOut);
-        putClassEntry(input, entries, jarOut);
+        putDirEntry(className.substring(0, className.lastIndexOf('.')), entries, jarOut);
+        putClassEntry(className, bytecode, entries, jarOut);
 
         return true;
       }
     });
   }
 
-  private void putDirEntry(String path, Set<String> entries, JarOutputStream jarOut) {
+  /**
+   * Saves a directory entry to the jar output.
+   */
+  private void putDirEntry(String pkg, Set<String> entries, JarOutputStream jarOut) {
     try {
       String entry = "";
-      for (String dir : Splitter.on('/').split(path)) {
+      for (String dir : Splitter.on('.').split(pkg)) {
         entry += dir + '/';
         if (entries.add(entry)) {
           jarOut.putNextEntry(new JarEntry(entry));
@@ -116,13 +137,15 @@ public final class ApplicationBundler {
     }
   }
 
-  private void putClassEntry(Class<?> clz, Set<String> entries, JarOutputStream jarOut) {
+  /**
+   * Saves a class entry to the jar output.
+   */
+  private void putClassEntry(String className, byte[] bytecode, Set<String> entries, JarOutputStream jarOut) {
     try {
-      String entry = Type.getInternalName(clz) + ".class";
+      String entry = className.replace('.', '/') + ".class";
       if (entries.add(entry)) {
         jarOut.putNextEntry(new JarEntry(entry));
-        InputStream is = clz.getClassLoader().getResourceAsStream(entry);
-        ByteStreams.copy(is, jarOut);
+        jarOut.write(bytecode);
         jarOut.closeEntry();
       }
     } catch (IOException e) {
@@ -130,7 +153,10 @@ public final class ApplicationBundler {
     }
   }
 
-  private void findPackageClasses(String pkg, Set<String> entries, JarOutputStream jarOut) throws IOException {
+  /**
+   * Copies everything under the given package to the jar output.
+   */
+  private void copyPackage(String pkg, Set<String> entries, JarOutputStream jarOut) throws IOException {
     String prefix = pkg.replace('.', '/');
 
     Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(prefix);
@@ -149,10 +175,6 @@ public final class ApplicationBundler {
 
   /**
    * Copies all entries under the path specified by the jarPath to the JarOutputStream.
-   * @param jarPath
-   * @param entries
-   * @param jarOut
-   * @throws IOException
    */
   private void copyJarEntries(URL jarPath, Set<String> entries, JarOutputStream jarOut) throws IOException {
     String spec = new URL(jarPath.getFile()).getFile();
@@ -181,6 +203,9 @@ public final class ApplicationBundler {
     }
   }
 
+  /**
+   * Copies all entries under the file path.
+   */
   private void copyFileEntries(File baseDir, String entryRoot,
                                Set<String> entries, JarOutputStream jarOut) throws IOException {
     URI baseUri = baseDir.toURI();

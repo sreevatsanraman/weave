@@ -15,7 +15,6 @@
  */
 package com.continuuity.weave.internal.utils;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -32,6 +31,7 @@ import org.objectweb.asm.signature.SignatureVisitor;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Queue;
 import java.util.Set;
 
@@ -40,48 +40,80 @@ import java.util.Set;
  */
 public final class Dependencies {
 
+  public interface ClassAcceptor {
+    boolean accept(String className, byte[] bytecode);
+  }
+
   /**
    * Finds the class dependencies of the given class.
+   * @param classLoader ClassLoader for finding class bytecode.
    * @param classesToResolve Classes for looking for dependencies.
-   * @param acceptor Predicate to accept a found class.
+   * @param acceptor Predicate to accept a found class and its bytecode.
    * @throws IOException Thrown where there is error when loading in class bytecode.
    */
-  public static void findClassDependencies(Iterable<Class<?>> classesToResolve,
-                                           final Predicate<Class<?>> acceptor) throws IOException {
+  public static void findClassDependencies(final ClassLoader classLoader, Iterable<String> classesToResolve,
+                                           final ClassAcceptor acceptor) throws IOException {
 
-    final Set<String> dependencies = Sets.newHashSet();
-    final Queue<Class<?>> classes = Lists.newLinkedList(classesToResolve);
+    final Set<String> seenClasses = Sets.newHashSet(classesToResolve);
+    final Queue<String> classes = Lists.newLinkedList(classesToResolve);
 
+    // Breadth-first-search classes dependencies.
     while (!classes.isEmpty()) {
-      Class<?> clz = classes.remove();
-      final ClassLoader classLoader = clz.getClassLoader();
-      InputStream is = classLoader.getResourceAsStream(Type.getInternalName(clz) + ".class");
-      ClassReader classReader = new ClassReader(ByteStreams.toByteArray(is));
+      String className = classes.remove();
+      URL classUrl = getClassURL(className, classLoader);
+      if (classUrl == null) {
+        continue;
+      }
 
-      classReader.accept(new DependencyClassVisitor(new DependencyAcceptor() {
-        @Override
-        public void accept(String className) {
-          try {
-            Class<?> clz = classLoader.loadClass(className);
-            // See if the class is accepted
-            if (acceptor.apply(clz)) {
-              // If haven't seen this class before, add it to the queue for dependency discovery.
-              if (dependencies.add(className)) {
-                classes.add(clz);
-              }
-            }
-          } catch (Throwable t) {
-            // Ignore classes that cannot be loaded.
-          }
+      // Open the stream for reading in class bytecode
+      InputStream is = classUrl.openStream();
+      try {
+        byte[] bytecode = ByteStreams.toByteArray(is);
+
+        // Call the accept to see if it accept the current class.
+        if (!acceptor.accept(className, bytecode)) {
+          continue;
         }
-      }), ClassReader.SKIP_DEBUG);
+
+        // Visit the bytecode to lookup classes that the visiting class is depended on.
+        new ClassReader(bytecode).accept(new DependencyClassVisitor(new DependencyAcceptor() {
+          @Override
+          public void accept(String className) {
+            // See if the class is accepted
+            if (seenClasses.add(className)) {
+              classes.add(className);
+            }
+          }
+        }), ClassReader.SKIP_DEBUG);
+      } finally {
+        is.close();
+      }
     }
   }
 
+  /**
+   * Returns the URL for loading the class bytecode of the given class, or null if it is not found or if it is
+   * a system class.
+   */
+  private static URL getClassURL(String className, ClassLoader classLoader) {
+    String resourceName = className.replace('.', '/') + ".class";
+    String pkgName = resourceName.substring(0, resourceName.lastIndexOf('/'));
+
+    // If the class is loaded by system classloader, the package resource of the class would return null.
+    // Need to test on more platform to verify this behavior.
+    return (classLoader.getResource(pkgName) != null) ? classLoader.getResource(resourceName) : null;
+  }
+
+  /**
+   * A private interface for accepting a dependent class that is found during bytecode inspection.
+   */
   private interface DependencyAcceptor {
     void accept(String className);
   }
 
+  /**
+   * ASM ClassVisitor for extracting classes dependencies.
+   */
   private static final class DependencyClassVisitor extends ClassVisitor {
 
     private final SignatureVisitor signatureVisitor;

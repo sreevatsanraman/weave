@@ -246,9 +246,10 @@ public final class Dependencies {
     }
 
     private void addClass(String internalName) {
-      if (internalName != null) {
-        acceptor.accept(Type.getObjectType(internalName).getClassName());
+      if (internalName == null || internalName.startsWith("java/")) {
+        return;
       }
+      acceptor.accept(Type.getObjectType(internalName).getClassName());
     }
 
     private void addClasses(String[] classes) {

@@ -58,6 +58,7 @@ public final class WeaveContainerService implements Service {
                                RunId runId,
                                WeaveRunnableSpecification specification,
                                ClassLoader classLoader,
+                               final int instanceId,
                                final String[] args,
                                final String[] applicationArgs) throws UnknownHostException {
     this.specification = specification;
@@ -84,6 +85,11 @@ public final class WeaveContainerService implements Service {
       @Override
       public WeaveRunnableSpecification getSpecification() {
         return WeaveContainerService.this.specification;
+      }
+
+      @Override
+      public int getInstanceId() {
+        return instanceId;
       }
     };
   }

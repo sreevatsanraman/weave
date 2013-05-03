@@ -35,4 +35,9 @@ public interface WeaveContext {
   String[] getApplicationArguments();
 
   WeaveRunnableSpecification getSpecification();
+
+  /**
+   * Returns an integer id from 0 to (instanceCount - 1).
+   */
+  int getInstanceId();
 }

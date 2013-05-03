@@ -1,6 +1,7 @@
 package com.continuuity.weave;
 
 import com.continuuity.weave.api.ListenerAdapter;
+import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.WeaveRunnerService;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
@@ -15,6 +16,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.util.concurrent.CountDownLatch;
@@ -26,15 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class EchoServerTest {
 
-//  private static final class TestApp implements WeaveApplication {
-//
-//    @Override
-//    public WeaveSpecification configure() {
-//      return WeaveSpecification.Builder.with()
-//        .setName("Test")
-//        .withRunnable().add(new EchoServer(12345))
-//    }
-//  }
+  private static final Logger LOG = LoggerFactory.getLogger(EchoServerTest.class);
 
   @Ignore
   @Test
@@ -43,7 +38,12 @@ public class EchoServerTest {
                                                                 zkServer.getConnectionStr() + "/weave");
     weaveRunner.startAndWait();
 
-    WeaveController controller = weaveRunner.prepare(new EchoServer(54321))
+    WeaveController controller = weaveRunner.prepare(new EchoServer(54321),
+                                                     ResourceSpecification.Builder.with()
+                                                       .setCores(1)
+                                                       .setMemory(1, ResourceSpecification.SizeUnit.GIGA)
+                                                       .setInstances(1)
+                                                       .build())
                                             .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
                                             .start();
 

@@ -43,13 +43,14 @@ public final class WeaveContainerMain extends ServiceMain {
     File weaveSpecFile = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
     RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
     String runnableName = System.getenv(EnvKeys.WEAVE_RUNNABLE_NAME);
+    int instanceId = Integer.parseInt(System.getenv(EnvKeys.WEAVE_INSTANCE_ID));
 
     // TODO: Use Jar class loader
     WeaveSpecification weaveSpec = loadWeaveSpec(weaveSpecFile);
     WeaveRunnableSpecification runnableSpec = weaveSpec.getRunnables().get(runnableName).getRunnableSpecification();
     new WeaveContainerMain().doMain(new WeaveContainerService(zkConnectStr, runId,
                                                               runnableSpec, ClassLoader.getSystemClassLoader(),
-                                                              args,
+                                                              instanceId, args,
                                                               decodeArgs(System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS))
                                                               ));
   }

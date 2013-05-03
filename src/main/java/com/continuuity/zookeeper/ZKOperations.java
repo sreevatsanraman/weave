@@ -141,12 +141,12 @@ public final class ZKOperations {
 
   public static ListenableFuture<String> watchDeleted(final ZKClient zkClient, final String path) {
     SettableFuture<String> completion = SettableFuture.create();
-    doWatchDeleted(zkClient, path, completion);
+    watchDeleted(zkClient, path, completion);
     return completion;
   }
 
-  private static void doWatchDeleted(final ZKClient zkClient, final String path,
-                                     final SettableFuture<String> completion) {
+  public static void watchDeleted(final ZKClient zkClient, final String path,
+                                  final SettableFuture<String> completion) {
 
     Futures.addCallback(zkClient.exists(path, new Watcher() {
       @Override
@@ -155,7 +155,7 @@ public final class ZKOperations {
           if (event.getType() == Event.EventType.NodeDeleted) {
             completion.set(path);
           } else {
-            doWatchDeleted(zkClient, path, completion);
+            watchDeleted(zkClient, path, completion);
           }
         }
       }

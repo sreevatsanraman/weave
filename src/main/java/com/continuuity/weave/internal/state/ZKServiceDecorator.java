@@ -395,7 +395,7 @@ public final class ZKServiceDecorator extends AbstractService {
 
     @Override
     public void failed(State from, final Throwable failure) {
-      LOG.info("Failed: " + from + " " + id);
+      LOG.info("Failed: " + from + " " + id + ". Reason: " + failure, failure);
       if (zkFailure) {
         return;
       }

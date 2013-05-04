@@ -128,7 +128,7 @@ public final class ZKOperations {
           watchExists(zkClient, path, existCompletion);
           return;
         }
-        LOG.error("Failed to watch data for path " + path, t);
+        LOG.error("Failed to watch data for path " + path + " " + t, t);
       }
     });
     return new Cancellable() {

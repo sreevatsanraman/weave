@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.internal.utils;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -29,8 +30,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.signature.SignatureVisitor;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Queue;
 import java.util.Set;
@@ -51,7 +54,9 @@ public final class Dependencies {
    * @param acceptor Predicate to accept a found class and its bytecode.
    * @throws IOException Thrown where there is error when loading in class bytecode.
    */
-  public static void findClassDependencies(final ClassLoader classLoader, Iterable<String> classesToResolve,
+  public static void findClassDependencies(final ClassLoader classLoader,
+                                           Set<String> acceptClassPath,
+                                           Iterable<String> classesToResolve,
                                            final ClassAcceptor acceptor) throws IOException {
 
     final Set<String> seenClasses = Sets.newHashSet(classesToResolve);
@@ -60,7 +65,7 @@ public final class Dependencies {
     // Breadth-first-search classes dependencies.
     while (!classes.isEmpty()) {
       String className = classes.remove();
-      URL classUrl = getClassURL(className, classLoader);
+      URL classUrl = getClassURL(className, classLoader, acceptClassPath);
       if (classUrl == null) {
         continue;
       }
@@ -95,13 +100,32 @@ public final class Dependencies {
    * Returns the URL for loading the class bytecode of the given class, or null if it is not found or if it is
    * a system class.
    */
-  private static URL getClassURL(String className, ClassLoader classLoader) {
+  private static URL getClassURL(String className, ClassLoader classLoader, Set<String> classPath) {
     String resourceName = className.replace('.', '/') + ".class";
-    String pkgName = resourceName.substring(0, resourceName.lastIndexOf('/'));
+    URL url = classLoader.getResource(resourceName);
 
-    // If the class is loaded by system classloader, the package resource of the class would return null.
-    // Need to test on more platform to verify this behavior.
-    return (classLoader.getResource(pkgName) != null) ? classLoader.getResource(resourceName) : null;
+    if (url == null) {
+      return null;
+    }
+
+    if ("file".equals(url.getProtocol())) {
+      String path = url.getPath();
+      // Extract the package root.
+      path = path.substring(0, path.length() - resourceName.length() - 1);
+      return classPath.contains(path) ? url : null;
+    }
+
+    if ("jar".equals(url.getProtocol())) {
+      String path = url.getPath();
+      path = path.substring(0, path.lastIndexOf('!'));
+      try {
+        return classPath.contains(new URL(path).getPath()) ? url : null;
+      } catch (MalformedURLException e) {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   /**

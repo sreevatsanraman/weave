@@ -48,6 +48,7 @@ public final class ApplicationBundler {
 
   private final List<String> excludePackages;
   private final List<String> includePackages;
+  private final Set<String> acceptClassPath;
 
   /**
    * Constructs a ApplicationBundler.
@@ -59,6 +60,10 @@ public final class ApplicationBundler {
   public ApplicationBundler(Iterable<String> excludePackages, Iterable<String> includePackages) {
     this.excludePackages = ImmutableList.copyOf(excludePackages);
     this.includePackages = ImmutableList.copyOf(includePackages);
+    this.acceptClassPath = Sets.difference(Sets.newHashSet(Splitter.on(File.pathSeparatorChar)
+                                                             .split(System.getProperty("java.class.path"))),
+                                           Sets.newHashSet(Splitter.on(File.pathSeparatorChar)
+                                                             .split(System.getProperty("sun.boot.class.path"))));
   }
 
   /**
@@ -102,7 +107,7 @@ public final class ApplicationBundler {
         return input.getName();
       }
     });
-    Dependencies.findClassDependencies(Thread.currentThread().getContextClassLoader(), classNames,
+    Dependencies.findClassDependencies(Thread.currentThread().getContextClassLoader(), acceptClassPath, classNames,
                                        new Dependencies.ClassAcceptor() {
       @Override
       public boolean accept(String className, byte[] bytecode) {

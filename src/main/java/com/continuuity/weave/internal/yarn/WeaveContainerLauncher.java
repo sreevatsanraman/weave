@@ -18,26 +18,19 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
-import com.continuuity.weave.internal.state.MessageCodec;
-import com.continuuity.weave.internal.state.SystemMessages;
+import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.internal.utils.YarnUtils;
 import com.continuuity.zookeeper.ZKClient;
-import com.continuuity.zookeeper.ZKOperations;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.zookeeper.CreateMode;
 
 import java.io.File;
 
 /**
  *
  */
-final class WeaveContainerLauncher extends AbstractIdleService {
+final class WeaveContainerLauncher {
 
   private final RuntimeSpecification runtimeSpec;
   private final RunId runId;
@@ -45,7 +38,7 @@ final class WeaveContainerLauncher extends AbstractIdleService {
   private final ZKClient zkClient;
   private final Iterable<String> args;
   private final int instanceId;
-  private ProcessLauncher.ProcessController controller;
+  private ProcessLauncher.ProcessController processController;
 
   WeaveContainerLauncher(RuntimeSpecification runtimeSpec, RunId runId, ProcessLauncher processLauncher,
                          ZKClient zkClient, Iterable<String> args, int instanceId) {
@@ -58,8 +51,7 @@ final class WeaveContainerLauncher extends AbstractIdleService {
     this.instanceId = instanceId;
   }
 
-  @Override
-  protected void startUp() throws Exception {
+  ServiceController start() {
     ProcessLauncher.PrepareLaunchContext.AfterUser afterUser = processLauncher.prepareLaunch()
       .setUser(System.getProperty("user.name"));
 
@@ -77,7 +69,7 @@ final class WeaveContainerLauncher extends AbstractIdleService {
       afterResources = resourcesAdder.add(localFile.getName(), localRsc);
     }
 
-    controller = afterResources
+    processController = afterResources
       .withEnvironment()
         .add(EnvKeys.WEAVE_RUN_ID, runId.getId())
         .add(EnvKeys.WEAVE_RUNNABLE_NAME, runtimeSpec.getName())
@@ -90,34 +82,10 @@ final class WeaveContainerLauncher extends AbstractIdleService {
                .addAll(args).build().toArray(new String[0]))
       .noOutput().noError()
       .launch();
-  }
 
-  @Override
-  protected void shutDown() throws Exception {
-    // TODO: Need to unify with WeaveController
-    byte[] data = MessageCodec.encode(SystemMessages.stopRunnable(runtimeSpec.getName()));
-    final SettableFuture<String> deleteFuture = SettableFuture.create();
-    // TODO: Should wait for instance node to go away as well.
-    Futures.addCallback(zkClient.create("/" + runId + "/messages/msg", data, CreateMode.PERSISTENT_SEQUENTIAL),
-                        new FutureCallback<String>() {
-                          @Override
-                          public void onSuccess(String result) {
-                            ZKOperations.watchDeleted(zkClient, result, deleteFuture);
-                          }
-
-                          @Override
-                          public void onFailure(Throwable t) {
-                            deleteFuture.setException(t);
-                          }
-                        });
-
-    deleteFuture.get();
-
-//    controller.stop();
-  }
-
-  RunId getRunId() {
-    return runId;
+    ContainerServiceController controller = new ContainerServiceController(runId);
+    controller.doStart(zkClient);
+    return controller;
   }
 
   private LocalResource setLocalResourceType(LocalFile localFile, LocalResource localResource) {
@@ -132,5 +100,17 @@ final class WeaveContainerLauncher extends AbstractIdleService {
       localResource.setType(LocalResourceType.FILE);
     }
     return localResource;
+  }
+
+  private static final class ContainerServiceController extends AbstractServiceController {
+
+    protected ContainerServiceController(RunId runId) {
+      super(runId);
+    }
+
+    @Override
+    public void doStart(ZKClient zkClient) {
+      super.doStart(zkClient);
+    }
   }
 }

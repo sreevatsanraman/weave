@@ -18,6 +18,7 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
+import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.api.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
@@ -279,17 +280,11 @@ public final class ApplicationMasterService implements Service {
                                                                                        getZKNamespace(runnableName)),
                                                                    runnableArgs.get(runnableName),
                                                                    instanceId);
-      launcher.start();
-      runningContainers.add(runnableName, container, launcher);
+      runningContainers.add(runnableName, container, launcher.start());
 
       if (runningContainers.count(runnableName) == containerCount) {
         LOG.info("Runnable " + runnableName + " fully provisioned with " + containerCount + " instances.");
         provisioning.poll();
-
-        // Needs to remove it from AMRMClient, otherwise later container requests will get accumulated with completed one
-        // if it has the same priority.
-        // TODO: Need to verify if the mentioned behavior is bug in AMRMClient or is intended usage.
-        amrmClient.removeContainerRequest(provisionRequest.getRequest());
       }
     }
   }
@@ -459,25 +454,25 @@ public final class ApplicationMasterService implements Service {
   }
 
   private static final class RunningContainers {
-    private final Table<String, ContainerId, WeaveContainerLauncher> runningContainers;
+    private final Table<String, ContainerId, ServiceController> runningContainers;
 
     RunningContainers() {
       runningContainers = HashBasedTable.create();
     }
 
-    synchronized void add(String runnableName, Container container, WeaveContainerLauncher launcher) {
-      runningContainers.put(runnableName, container.getId(), launcher);
+    synchronized void add(String runnableName, Container container, ServiceController controller) {
+      runningContainers.put(runnableName, container.getId(), controller);
     }
 
     synchronized int count(String runnableName) {
       return runningContainers.row(runnableName).size();
     }
 
-    synchronized ListenableFuture<List<State>> stopAll() {
+    synchronized ListenableFuture<List<ServiceController.State>> stopAll() {
       // TODO: Order the stop sequence in reverse of the start sequence
-      List<ListenableFuture<State>> futures = Lists.newLinkedList();
-      for (WeaveContainerLauncher launcher : runningContainers.values()) {
-        futures.add(launcher.stop());
+      List<ListenableFuture<ServiceController.State>> futures = Lists.newLinkedList();
+      for (ServiceController controller : runningContainers.values()) {
+        futures.add(controller.stop());
       }
       return Futures.successfulAsList(futures);
     }

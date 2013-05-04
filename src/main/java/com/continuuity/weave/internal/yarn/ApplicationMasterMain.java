@@ -41,6 +41,7 @@ public final class ApplicationMasterMain extends ServiceMain {
     String zkConnect = System.getenv(EnvKeys.WEAVE_CONTAINER_ZK);
     File weaveSpec = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
     RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
+
     new ApplicationMasterMain(String.format("%s/%s/kafka", zkConnect, runId))
       .doMain(new ApplicationMasterService(runId, zkConnect, weaveSpec));
   }
@@ -57,5 +58,10 @@ public final class ApplicationMasterMain extends ServiceMain {
   @Override
   protected String getKafkaZKConnect() {
     return kafkaZKConnect;
+  }
+
+  @Override
+  protected File getLogBackTemplate() {
+    return new File(System.getenv(EnvKeys.WEAVE_LOGBACK_PATH));
   }
 }

@@ -28,13 +28,18 @@ dependencies {
   apiCompile libraries.google_guava
   apiCompile libraries.jsr_305
 
+  compile libraries.asm
   compile libraries.jsr_305
   compile libraries.google_gson
   compile libraries.google_guava
-  compile libraries.google_guice
-  compile libraries.hadoop_common
+  compile (libraries.hadoop_common) {
+    exclude group: 'commons-logging'
+  }
   compile libraries.hadoop_yarn_api
-  compile libraries.hadoop_yarn_client
+  compile (libraries.hadoop_yarn_client) {
+    exclude group: 'commons-logging'
+  }
+  compile libraries.jcl_over_slf4j
   compile libraries.logback_core
   compile libraries.logback_classic
   compile libraries.netty

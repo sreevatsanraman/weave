@@ -32,7 +32,6 @@ final class Bufferer {
 
   /**
    * Returns the buffer if the buffer data is ready to be consumed, otherwise return {@link ChannelBuffers#EMPTY_BUFFER}
-   * @return
    */
   ChannelBuffer getNext() {
     if (currentSize < 0) {

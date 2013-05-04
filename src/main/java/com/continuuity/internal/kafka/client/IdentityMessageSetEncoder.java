@@ -19,7 +19,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
 /**
- *
+ * A pass-through {@link MessageSetEncoder}.
  */
 final class IdentityMessageSetEncoder extends AbstractMessageSetEncoder {
 

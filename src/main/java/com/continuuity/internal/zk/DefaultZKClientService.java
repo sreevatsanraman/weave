@@ -410,6 +410,7 @@ public final class DefaultZKClientService implements ZKClientService {
   private static final class Callbacks {
     static AsyncCallback.StringCallback STRING = new AsyncCallback.StringCallback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, String name) {
         SettableOperationFuture<String> result = (SettableOperationFuture<String>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
@@ -423,6 +424,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
     static AsyncCallback.StatCallback STAT = new AsyncCallback.StatCallback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, Stat stat) {
         SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
@@ -439,6 +441,7 @@ public final class DefaultZKClientService implements ZKClientService {
      */
     static AsyncCallback.StatCallback STAT_NONODE = new AsyncCallback.StatCallback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, Stat stat) {
         SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
@@ -452,6 +455,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
     static AsyncCallback.Children2Callback CHILDREN = new AsyncCallback.Children2Callback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, List<String> children, Stat stat) {
         SettableOperationFuture<NodeChildren> result = (SettableOperationFuture<NodeChildren>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
@@ -465,6 +469,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
     static AsyncCallback.DataCallback DATA = new AsyncCallback.DataCallback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
         SettableOperationFuture<NodeData> result = (SettableOperationFuture<NodeData>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
@@ -478,6 +483,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
     static AsyncCallback.VoidCallback VOID = new AsyncCallback.VoidCallback() {
       @Override
+      @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx) {
         SettableOperationFuture<String> result = (SettableOperationFuture<String>)ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);

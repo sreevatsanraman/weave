@@ -32,13 +32,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Service;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -47,7 +45,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.google.inject.Singleton;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -76,6 +73,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *   and also for discovering the registered services.
  *   <blockquote>
  *    <pre>
+ *      {@code
+ *
  *      DiscoveryService service = new ZKDiscoveryService(zkQuorum);
  *      service.startAndWait();
  *      service.register(new Discoverable() {
@@ -93,11 +92,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *      ...
  *      Iterable<Discoverable> services = service.discovery("service-name");
  *      ...
+ *      }
  *    </pre>
  *   </blockquote>
  * </p>
  */
-@Singleton
 public class ZKDiscoveryService extends AbstractService implements DiscoveryService, DiscoveryServiceClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZKDiscoveryService.class);
   private static final String NAMESPACE = "/discoverable";
@@ -340,29 +339,6 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
       jsonObj.addProperty("hostname", src.getSocketAddress().getHostName());
       jsonObj.addProperty("port", src.getSocketAddress().getPort());
       return jsonObj;
-    }
-  }
-
-  /**
-   * Wrapper for a discoverable.
-   */
-  private static final class DiscoverableWrapper implements Discoverable {
-    private final String name;
-    private final InetSocketAddress address;
-
-    private DiscoverableWrapper(Discoverable discoverable) {
-      this.name = discoverable.getName();
-      this.address = discoverable.getSocketAddress();
-    }
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public InetSocketAddress getSocketAddress() {
-      return address;
     }
   }
 }

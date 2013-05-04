@@ -80,22 +80,42 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
     buffer = new ConcurrentLinkedQueue<String>();
   }
 
+  /**
+   * Sets the zookeeper connection string. Called by slf4j.
+   */
+  @SuppressWarnings("unused")
   public void setZookeeper(String zkConnectStr) {
     this.zkConnectStr = zkConnectStr;
   }
 
+  /**
+   * Sets the hostname. Called by slf4j.
+   */
+  @SuppressWarnings("unused")
   public void setHostname(String hostname) {
     this.hostname = hostname;
   }
 
+  /**
+   * Sets the topic name for publishing logs. Called by slf4j.
+   */
+  @SuppressWarnings("unused")
   public void setTopic(String topic) {
     this.topic = topic;
   }
 
+  /**
+   * Sets the maximum number of cached log entries before performing an force flush. Called by slf4j.
+   */
+  @SuppressWarnings("unused")
   public void setFlushLimit(int flushLimit) {
     this.flushLimit = flushLimit;
   }
 
+  /**
+   * Sets the periodic flush time in milliseconds. Called by slf4j.
+   */
+  @SuppressWarnings("unused")
   public void setFlushPeriod(int flushPeriod) {
     this.flushPeriod = flushPeriod;
   }

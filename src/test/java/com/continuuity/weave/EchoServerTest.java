@@ -1,10 +1,8 @@
 package com.continuuity.weave;
 
 import com.continuuity.weave.api.ListenerAdapter;
-import com.continuuity.weave.api.WeaveApplication;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.WeaveRunnerService;
-import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
 import com.continuuity.weave.internal.yarn.YarnWeaveRunnerService;
 import com.continuuity.weave.zk.InMemoryZKServer;
@@ -12,7 +10,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
-import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -66,8 +63,6 @@ public class EchoServerTest {
 
   @Before
   public void init() {
-    org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
-
     // Starts Zookeeper
     zkServer = InMemoryZKServer.builder().build();
     zkServer.startAndWait();

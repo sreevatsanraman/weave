@@ -16,8 +16,8 @@
 package com.continuuity.internal.kafka.client;
 
 /**
-*
-*/
+ * Enum for indicating compression method.
+ */
 public enum Compression {
   NONE(0),
   GZIP(1),

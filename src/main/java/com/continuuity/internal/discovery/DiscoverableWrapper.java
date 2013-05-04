@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,23 +13,31 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.kafka.client;
+package com.continuuity.internal.discovery;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
+import com.continuuity.zookeeper.Discoverable;
+
+import java.net.InetSocketAddress;
 
 /**
- * A {@link MessageSetEncoder} that compress message set using GZIP.
+ * Wrapper for a discoverable.
  */
-final class GZipMessageSetEncoder extends AbstractCompressedMessageSetEncoder {
+final class DiscoverableWrapper implements Discoverable {
+  private final String name;
+  private final InetSocketAddress address;
 
-  GZipMessageSetEncoder() {
-    super(Compression.GZIP);
+  DiscoverableWrapper(Discoverable discoverable) {
+    this.name = discoverable.getName();
+    this.address = discoverable.getSocketAddress();
   }
 
   @Override
-  protected OutputStream createCompressedStream(OutputStream os) throws IOException {
-    return new GZIPOutputStream(os);
+  public String getName() {
+    return name;
+  }
+
+  @Override
+  public InetSocketAddress getSocketAddress() {
+    return address;
   }
 }

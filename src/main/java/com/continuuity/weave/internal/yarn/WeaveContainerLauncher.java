@@ -23,6 +23,7 @@ import com.continuuity.weave.internal.state.MessageCodec;
 import com.continuuity.weave.internal.state.SystemMessages;
 import com.continuuity.weave.internal.utils.YarnUtils;
 import com.continuuity.zookeeper.ZKClient;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -33,8 +34,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -43,32 +42,42 @@ import java.io.File;
  */
 public final class WeaveContainerLauncher extends AbstractIdleService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(WeaveContainerLauncher.class);
-
   private final WeaveSpecification weaveSpec;
   private final File weaveSpecFile;
+  private final File containerJar;
+  private final File logbackFile;
   private final String runnableName;
   private final RunId runId;
   private final ProcessLauncher processLauncher;
   private final ZKClient zkClient;
   private final String zkConnectStr;
+  private final Iterable<String> args;
+  private final String applicationArgs;
   private ProcessLauncher.ProcessController controller;
 
   public WeaveContainerLauncher(WeaveSpecification weaveSpec,
                                 File weaveSpecFile,
+                                File containerJar,
+                                File logbackFile,
                                 String runnableName,
                                 RunId runId,
                                 ProcessLauncher processLauncher,
                                 ZKClient zkClient,
-                                String zkConnectStr) {
+                                String zkConnectStr,
+                                Iterable<String> args,
+                                String applicationArgs) {
     this.weaveSpec = weaveSpec;
     this.weaveSpecFile = weaveSpecFile;
+    this.logbackFile = logbackFile;
+    this.containerJar = containerJar;
     this.runnableName = runnableName;
     this.runId = runId;
     this.processLauncher = processLauncher;
     // TODO: This is hacky to pass around a ZKClient like this
     this.zkClient = zkClient;
     this.zkConnectStr = zkConnectStr;
+    this.args = args;
+    this.applicationArgs = applicationArgs;
   }
 
   @Override
@@ -79,7 +88,10 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
       .setUser(System.getProperty("user.name"));
 
     ProcessLauncher.PrepareLaunchContext.MoreResources moreResources =
-      afterUser.withResources().add("weave.spec", YarnUtils.createLocalResource(LocalResourceType.FILE, weaveSpecFile));
+      afterUser.withResources()
+        .add("weave.spec", YarnUtils.createLocalResource(LocalResourceType.FILE, weaveSpecFile))
+        .add("container.jar", YarnUtils.createLocalResource(LocalResourceType.FILE, containerJar))
+        .add("logback-template.xml", YarnUtils.createLocalResource(LocalResourceType.FILE, logbackFile));
 
     for (LocalFile localFile : runtimeSpec.getLocalFiles()) {
       File file = new File(runnableName + "." + localFile.getName());
@@ -88,14 +100,21 @@ public final class WeaveContainerLauncher extends AbstractIdleService {
       moreResources = moreResources.add(localFile.getName(), localRsc);
     }
 
+    ;
     controller = moreResources
       .withEnvironment()
         .add(EnvKeys.WEAVE_CONTAINER_ZK, zkConnectStr)
         .add(EnvKeys.WEAVE_SPEC_PATH, "weave.spec")
+        .add(EnvKeys.WEAVE_LOGBACK_PATH, "logback-template.xml")
         .add(EnvKeys.WEAVE_RUN_ID, runId.getId())
         .add(EnvKeys.WEAVE_RUNNABLE_NAME, runnableName)
+        .add(EnvKeys.WEAVE_APPLICATION_ARGS, applicationArgs)
       .withCommands()
-        .add("java",WeaveContainerMain.class.getName())
+        .add("java",
+             ImmutableList.<String>builder()
+               .add("-cp").add("container.jar")
+               .add(WeaveContainerMain.class.getName())
+               .addAll(args).build().toArray(new String[0]))
       .noOutput().noError()
       .launch();
   }

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Provides connection reuse
+ * Provides netty socket connection reuse
  */
 final class ConnectionPool {
 

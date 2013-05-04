@@ -34,6 +34,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutionException;
@@ -101,6 +102,8 @@ public abstract class ServiceMain {
 
   protected abstract String getKafkaZKConnect();
 
+  protected abstract File getLogBackTemplate();
+
   private void configureLogger() {
     // Check if SLF4J is bound to logback in the current environment
     ILoggerFactory loggerFactory = LoggerFactory.getILoggerFactory();
@@ -118,8 +121,7 @@ public abstract class ServiceMain {
 
   private void doConfigure(JoranConfigurator configurator) {
     try {
-      Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-        .parse(getClass().getClassLoader().getResourceAsStream("logback-template.xml"));
+      Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(getLogBackTemplate());
 
       NodeList appenders = document.getElementsByTagName("appender");
       for (int i = 0; i < appenders.getLength(); i++) {

@@ -9,9 +9,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.inject.Singleton;
 
-import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,7 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * A simple in memory implementation of {@link DiscoveryService} and {@link DiscoveryServiceClient}.
  */
-@Singleton
 public class InMemoryDiscoveryService extends AbstractIdleService implements DiscoveryService, DiscoveryServiceClient {
 
   private Multimap<String, Discoverable> services;
@@ -73,26 +70,5 @@ public class InMemoryDiscoveryService extends AbstractIdleService implements Dis
         }
       }
     };
-  }
-
-  private static final class DiscoverableWrapper implements Discoverable {
-
-    private final String name;
-    private final InetSocketAddress address;
-
-    private DiscoverableWrapper(Discoverable discoverable) {
-      this.name = discoverable.getName();
-      this.address = discoverable.getSocketAddress();
-    }
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public InetSocketAddress getSocketAddress() {
-      return address;
-    }
   }
 }

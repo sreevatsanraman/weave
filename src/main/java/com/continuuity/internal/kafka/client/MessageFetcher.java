@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 /**
- *
+ * This class is for consuming messages from a kafka topic.
  */
 final class MessageFetcher extends AbstractIterator<FetchedMessage> implements ResponseHandler {
 
@@ -114,7 +114,7 @@ final class MessageFetcher extends AbstractIterator<FetchedMessage> implements R
 
     ChannelBuffer payload = buffer.readSlice(size - (buffer.readerIndex() - readerIdx));
 
-    // TODO: verify CRC?
+    // Verify CRC?
     enqueueMessage(compression, payload, nextOffset);
   }
 
@@ -124,15 +124,15 @@ final class MessageFetcher extends AbstractIterator<FetchedMessage> implements R
         messages.add(FetchResult.success(new BasicFetchedMessage(nextOffset, payload.toByteBuffer())));
         break;
       case GZIP:
-        decodeResponse(gzipUncompress(payload), nextOffset);
+        decodeResponse(gunzip(payload), nextOffset);
         break;
       case SNAPPY:
-        decodeResponse(snappyUncompress(payload), nextOffset);
+        decodeResponse(unsnappy(payload), nextOffset);
         break;
     }
   }
 
-  private ChannelBuffer gzipUncompress(ChannelBuffer source) {
+  private ChannelBuffer gunzip(ChannelBuffer source) {
     ChannelBufferOutputStream output = new ChannelBufferOutputStream(
                                               ChannelBuffers.dynamicBuffer(source.readableBytes() * 2));
     try {
@@ -152,7 +152,7 @@ final class MessageFetcher extends AbstractIterator<FetchedMessage> implements R
     }
   }
 
-  private ChannelBuffer snappyUncompress(ChannelBuffer source) {
+  private ChannelBuffer unsnappy(ChannelBuffer source) {
     ChannelBufferOutputStream output = new ChannelBufferOutputStream(
                                               ChannelBuffers.dynamicBuffer(source.readableBytes() * 2));
     try {

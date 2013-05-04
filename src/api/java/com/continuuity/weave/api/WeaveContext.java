@@ -24,5 +24,15 @@ public interface WeaveContext {
 
   InetAddress getHost();
 
+  /**
+   * Returns the runtime arguments that are passed to the {@link WeaveRunnable}.
+   */
+  String[] getArguments();
+
+  /**
+   * Returns the runtime arguments that are passed to the {@link WeaveApplication}.
+   */
+  String[] getApplicationArguments();
+
   WeaveRunnableSpecification getSpecification();
 }

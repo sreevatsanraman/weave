@@ -20,6 +20,8 @@ import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
 import com.continuuity.zookeeper.ZKClient;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
@@ -107,16 +109,17 @@ public final class NamespaceZKClient extends ForwardingZKClient {
   }
 
   private <V> OperationFuture<V> relayFuture(final OperationFuture<V> from, final SettableOperationFuture<V> to) {
-    from.addListener(new Runnable() {
+    Futures.addCallback(from, new FutureCallback<V>() {
       @Override
-      public void run() {
-        try {
-          to.set(from.get());
-        } catch (Exception e) {
-          to.setException(e);
-        }
+      public void onSuccess(V result) {
+        to.set(result);
       }
-    }, SAME_THREAD_EXECUTOR);
+
+      @Override
+      public void onFailure(Throwable t) {
+        to.setException(t);
+      }
+    });
     return to;
   }
 

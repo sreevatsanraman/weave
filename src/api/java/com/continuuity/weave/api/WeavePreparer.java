@@ -83,6 +83,10 @@ public interface WeavePreparer {
    */
   WeavePreparer withDependencies(Iterable<Class<?>> classes);
 
+  WeavePreparer withPackages(String...packages);
+
+  WeavePreparer withPackages(Iterable<String> packages);
+
   /**
    * Starts the application.
    * @return A {@link WeaveController} for controlling the running application.

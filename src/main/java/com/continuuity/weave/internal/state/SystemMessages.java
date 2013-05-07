@@ -16,6 +16,7 @@
 package com.continuuity.weave.internal.state;
 
 import com.continuuity.weave.api.Command;
+import com.google.common.base.Preconditions;
 
 /**
  * Collection of predefined system messages.
@@ -30,6 +31,12 @@ public final class SystemMessages {
 
   public static Message stopRunnable(String runnableName) {
     return new SimpleMessage(Message.Type.SYSTEM, Message.Scope.RUNNABLE, runnableName, STOP_COMMAND);
+  }
+
+  public static Message setInstances(String runnableName, int instances) {
+    Preconditions.checkArgument(instances > 0, "Instances should be > 0.");
+    return new SimpleMessage(Message.Type.SYSTEM, Message.Scope.RUNNABLE, runnableName,
+                             Command.Builder.of("instances").addOption("count", Integer.toString(instances)).build());
   }
 
   private SystemMessages() {

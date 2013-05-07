@@ -215,7 +215,7 @@ public final class ZKServiceDecorator extends AbstractService {
   private void processMessage(final String path, final String messageId) {
     Futures.addCallback(zkClient.getData(path), new FutureCallback<NodeData>() {
       @Override
-      public void onSuccess(final NodeData result) {
+      public void onSuccess(NodeData result) {
         Message message = MessageCodec.decode(result.getData());
         if (message == null) {
           LOG.error("Failed to decode message for " + messageId + " in " + path);
@@ -225,14 +225,7 @@ public final class ZKServiceDecorator extends AbstractService {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Message received from " + path + ": " + new String(MessageCodec.encode(message), Charsets.UTF_8));
         }
-        if (message.getType() == Message.Type.SYSTEM && "stop".equalsIgnoreCase(message.getCommand().getCommand())) {
-            decoratedService.stop().addListener(new Runnable() {
-
-              @Override
-              public void run() {
-                stopServiceOnComplete(zkClient.delete(path, result.getStat().getVersion()), ZKServiceDecorator.this);
-              }
-            }, MoreExecutors.sameThreadExecutor());
+        if (handleStopMessage(message, getDeleteSupplier(path, result.getStat().getVersion()))) {
           return;
         }
         messageCallback.onReceived(callbackExecutor, path, result.getStat().getVersion(), messageId, message);
@@ -243,6 +236,30 @@ public final class ZKServiceDecorator extends AbstractService {
         LOG.error("Failed to fetch message content.", t);
       }
     });
+  }
+
+  private <V> boolean handleStopMessage(Message message, final Supplier<OperationFuture<V>> postHandleSupplier) {
+    if (message.getType() == Message.Type.SYSTEM && "stop".equalsIgnoreCase(message.getCommand().getCommand())) {
+      decoratedService.stop().addListener(new Runnable() {
+
+        @Override
+        public void run() {
+          stopServiceOnComplete(postHandleSupplier.get(), ZKServiceDecorator.this);
+        }
+      }, MoreExecutors.sameThreadExecutor());
+      return true;
+    }
+    return false;
+  }
+
+
+  private Supplier<OperationFuture<String>> getDeleteSupplier(final String path, final int version) {
+    return new Supplier<OperationFuture<String>>() {
+      @Override
+      public OperationFuture<String> get() {
+        return zkClient.delete(path, version);
+      }
+    };
   }
 
   private Listener createListener() {
@@ -378,7 +395,7 @@ public final class ZKServiceDecorator extends AbstractService {
 
     @Override
     public void failed(State from, final Throwable failure) {
-      LOG.info("Failed: " + from + " " + id);
+      LOG.info("Failed: " + from + " " + id + ". Reason: " + failure, failure);
       if (zkFailure) {
         return;
       }

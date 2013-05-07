@@ -74,6 +74,7 @@ final class YarnWeavePreparer implements WeavePreparer {
   private final List<LogHandler> logHandlers = Lists.newArrayList();
   private final List<String> arguments = Lists.newArrayList();
   private final Set<Class<?>> dependencies = Sets.newIdentityHashSet();
+  private final Set<String> packages = Sets.newHashSet();
   private final ListMultimap<String, String> runnableArgs = ArrayListMultimap.create();
 
 
@@ -123,6 +124,17 @@ final class YarnWeavePreparer implements WeavePreparer {
   }
 
   @Override
+  public WeavePreparer withPackages(String... packages) {
+    return withPackages(Arrays.asList(packages));
+  }
+
+  @Override
+  public WeavePreparer withPackages(Iterable<String> packages) {
+    Iterables.addAll(this.packages, packages);
+    return this;
+  }
+
+  @Override
   public WeaveController start() {
     // TODO: Unify this with {@link ProcessLauncher}
     try {
@@ -140,11 +152,13 @@ final class YarnWeavePreparer implements WeavePreparer {
       // loading of the Native bytecode in a different way.
       ApplicationBundler bundler = new ApplicationBundler(ImmutableList.<String>builder()
                                                             .add("org.xerial.snappy")
+                                                            .add("org.apache.hadoop.hdfs")  // TODO: Remove later
                                                             .build(),
                                                           ImmutableList.<String>builder()
                                                             .add("org.apache.hadoop.yarn")
                                                             .add("org.apache.hadoop.security")
                                                             .add("org.xerial.snappy")
+                                                            .addAll(packages)
                                                             .build()
                                                           );
       resourceCleaner.add(createAppMasterJar(bundler, localResources));

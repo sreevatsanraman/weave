@@ -22,6 +22,7 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.logging.LogEntry;
 import com.continuuity.weave.api.logging.LogHandler;
+import com.continuuity.weave.internal.StackTraceElementCodec;
 import com.continuuity.weave.internal.logging.LogEntryDecoder;
 import com.continuuity.weave.internal.utils.Services;
 import com.continuuity.zookeeper.RetryStrategies;
@@ -132,7 +133,9 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
       @Override
       public void run() {
         LOG.info("Weave log poller thread started.");
-        Gson gson = new GsonBuilder().registerTypeAdapter(LogEntry.class, new LogEntryDecoder()).create();
+        Gson gson = new GsonBuilder().registerTypeAdapter(LogEntry.class, new LogEntryDecoder())
+                                     .registerTypeAdapter(StackTraceElement.class, new StackTraceElementCodec())
+                                     .create();
         Iterator<FetchedMessage> messageIterator = kafkaClient.consume(LOG_TOPIC, 0, 0, 1048576);
         while (messageIterator.hasNext()) {
           String json = Charsets.UTF_8.decode(messageIterator.next().getBuffer()).toString();

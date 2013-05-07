@@ -9,6 +9,8 @@ import com.google.common.util.concurrent.Service;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +24,8 @@ import java.util.concurrent.Executor;
  *
  */
 public final class InMemoryZKServer implements Service {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InMemoryZKServer.class);
 
   private final File dataDir;
   private final int tickTime;
@@ -38,6 +42,8 @@ public final class InMemoryZKServer implements Service {
       factory = ServerCnxnFactory.createFactory();
       factory.configure(getAddress(port), -1);
       factory.startup(zkServer);
+
+      LOG.info("In memory ZK started: " + getConnectionStr());
     }
 
     @Override

@@ -22,6 +22,7 @@ public final class EnvKeys {
 
   public static final String WEAVE_CONTAINER_ZK = "WEAVE_CONTAINER_ZK";
   public static final String WEAVE_RUN_ID = "WEAVE_RUN_ID";
+  public static final String WEAVE_INSTANCE_ID = "WEAVE_INSTANCE_ID";
 
   public static final String WEAVE_SPEC_PATH = "WEAVE_SPEC_PATH";
   public static final String WEAVE_LOGBACK_PATH = "WEAVE_LOGBACK_PATH";

@@ -15,7 +15,10 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.weave.internal.utils.YarnUtils;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.net.NetUtils;
@@ -28,6 +31,7 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
@@ -35,6 +39,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +55,19 @@ final class DefaultProcessLauncher implements ProcessLauncher {
   private final YarnRPC yarnRPC;
   private final YarnConfiguration yarnConf;
   private final String kafkaZKConnect;
+  private final List<File> defaultLocalFiles;
+  private final Map<String, String> defaultEnv;
 
-  DefaultProcessLauncher(Container container, YarnRPC yarnRPC, YarnConfiguration yarnConf, String kafkaZKConnect) {
+  DefaultProcessLauncher(Container container, YarnRPC yarnRPC,
+                         YarnConfiguration yarnConf, String kafkaZKConnect,
+                         Iterable<File> defaultLocalFiles,
+                         Map<String, String> defaultEnv) {
     this.container = container;
     this.yarnRPC = yarnRPC;
     this.yarnConf = yarnConf;
     this.kafkaZKConnect = kafkaZKConnect;
+    this.defaultLocalFiles = ImmutableList.copyOf(defaultLocalFiles);
+    this.defaultEnv = ImmutableMap.copyOf(defaultEnv);
   }
 
   @Override
@@ -111,6 +123,12 @@ final class DefaultProcessLauncher implements ProcessLauncher {
 
     private final class MoreResourcesImpl implements MoreResources {
 
+      private MoreResourcesImpl() {
+        for (File file : defaultLocalFiles) {
+          add(file.getName(), YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+        }
+      }
+
       @Override
       public MoreResources add(String name, LocalResource resource) {
         localResources.put(name, resource);
@@ -134,6 +152,10 @@ final class DefaultProcessLauncher implements ProcessLauncher {
     }
 
     private final class MoreEnvironmentImpl implements MoreEnvironment {
+
+      private MoreEnvironmentImpl() {
+        environment.putAll(defaultEnv);
+      }
 
       @Override
       public CommandAdder withCommands() {

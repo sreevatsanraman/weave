@@ -23,6 +23,7 @@ import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.internal.utils.Instances;
+import com.continuuity.weave.internal.utils.Threads;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
@@ -38,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This class act as a yarn container and run a {@link WeaveRunnable}.
@@ -52,6 +55,7 @@ public final class WeaveContainerService implements Service {
   private final WeaveContext context;
   private final ZKServiceDecorator serviceDelegate;
   private final ContainerInfo containerInfo;
+  private ExecutorService commandExecutor;
   private WeaveRunnable runnable;
 
   public WeaveContainerService(String zkConnectionStr,
@@ -94,9 +98,20 @@ public final class WeaveContainerService implements Service {
     };
   }
 
-  private ListenableFuture<String> processMessage(String messageId, Message message) {
-    SettableFuture<String> result = SettableFuture.create();
+  private ListenableFuture<String> processMessage(final String messageId, final Message message) {
+    final SettableFuture<String> result = SettableFuture.create();
+    commandExecutor.execute(new Runnable() {
 
+      @Override
+      public void run() {
+        try {
+          runnable.handleCommand(message.getCommand());
+          result.set(messageId);
+        } catch (Exception e) {
+          result.setException(e);
+        }
+      }
+    });
     return result;
   }
 
@@ -114,6 +129,7 @@ public final class WeaveContainerService implements Service {
 
   @Override
   public ListenableFuture<State> start() {
+    commandExecutor = Executors.newSingleThreadExecutor(Threads.createDaemonThreadFactory("runnable-command-executor"));
     return serviceDelegate.start();
   }
 
@@ -134,6 +150,7 @@ public final class WeaveContainerService implements Service {
 
   @Override
   public ListenableFuture<State> stop() {
+    commandExecutor.shutdownNow();
     return serviceDelegate.stop();
   }
 

@@ -15,7 +15,7 @@
  */
 package com.continuuity.zookeeper;
 
-import com.continuuity.internal.zk.DefaultZKClientService;
+import com.continuuity.internal.zookeeper.DefaultZKClientService;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Service;
 import org.apache.zookeeper.Watcher;

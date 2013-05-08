@@ -23,7 +23,7 @@ import com.continuuity.weave.api.WeavePreparer;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.ApplicationBundler;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaAppender;
 import com.continuuity.weave.internal.utils.YarnUtils;

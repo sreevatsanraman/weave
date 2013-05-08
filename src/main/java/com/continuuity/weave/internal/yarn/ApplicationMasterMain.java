@@ -17,7 +17,7 @@ package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.internal.ServiceMain;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 
 import java.io.File;
 import java.net.InetAddress;

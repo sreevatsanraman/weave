@@ -16,7 +16,7 @@
 package com.continuuity.weave.internal.json;
 
 import com.continuuity.weave.api.LocalFile;
-import com.continuuity.weave.internal.api.DefaultLocalFile;
+import com.continuuity.weave.internal.DefaultLocalFile;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;

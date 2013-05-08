@@ -111,15 +111,16 @@ public final class ZKServiceDecorator extends AbstractService {
       public void onSuccess(State result) {
         // Create nodes for states and messaging
         StateNode stateNode = new StateNode(ServiceController.State.STARTING, null);
-        createMessagesNode();
-        final OperationFuture<String> stateFuture = zkClient.create(getZKPath("state"),
-                                                                    encodeStateNode(stateNode),
-                                                                    CreateMode.PERSISTENT);
-        stateFuture.addListener(new Runnable() {
+        final ListenableFuture<List<String>> createFuture = Futures.allAsList(
+          zkClient.create(getZKPath("messages"), null, CreateMode.PERSISTENT),
+          zkClient.create(getZKPath("state"), encodeStateNode(stateNode), CreateMode.PERSISTENT)
+        );
+
+        createFuture.addListener(new Runnable() {
           @Override
           public void run() {
             try {
-              stateFuture.get();
+              createFuture.get();
               // Starts the decorated service
               decoratedService.addListener(createListener(), SAME_THREAD_EXECUTOR);
               decoratedService.start();
@@ -165,22 +166,6 @@ public final class ZKServiceDecorator extends AbstractService {
         }
       }
     };
-  }
-
-  private void createMessagesNode() {
-    final OperationFuture<String> future = zkClient.create(getZKPath("messages"), null, CreateMode.PERSISTENT);
-    future.addListener(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          future.get();
-          watchMessages();
-        } catch (Exception e) {
-          // TODO: what could be done besides just logging?
-          LOG.error("Failed to create node " + future.getRequestPath(), e);
-        }
-      }
-    }, SAME_THREAD_EXECUTOR);
   }
 
   private void watchMessages() {
@@ -361,6 +346,7 @@ public final class ZKServiceDecorator extends AbstractService {
     public void running() {
       LOG.info("Running: " + id);
       notifyStarted();
+      watchMessages();
       saveState(ServiceController.State.RUNNING);
     }
 
@@ -377,9 +363,8 @@ public final class ZKServiceDecorator extends AbstractService {
         return;
       }
       StateNode stateNode = new StateNode(ServiceController.State.TERMINATED, null);
-      Futures.addCallback(stopServiceOnComplete(zkClient.setData(getZKPath("state"),
-                                                                 encodeStateNode(stateNode)),
-                                                zkClient),
+      Futures.addCallback(
+        stopServiceOnComplete(zkClient.setData(getZKPath("state"), encodeStateNode(stateNode)), zkClient),
         new FutureCallback<State>() {
           @Override
           public void onSuccess(State result) {

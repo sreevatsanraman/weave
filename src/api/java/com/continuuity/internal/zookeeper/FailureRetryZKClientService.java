@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.zk;
+package com.continuuity.internal.zookeeper;
 
 import com.continuuity.zookeeper.ForwardingZKClientService;
 import com.continuuity.zookeeper.NodeChildren;

@@ -13,9 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.zk;
+package com.continuuity.internal.zookeeper;
 
-import com.continuuity.internal.zk.RewatchOnExpireWatcher.ActionType;
+import com.continuuity.internal.zookeeper.RewatchOnExpireWatcher.ActionType;
 import com.continuuity.zookeeper.ForwardingZKClientService;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;

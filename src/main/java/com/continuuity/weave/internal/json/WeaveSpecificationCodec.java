@@ -17,7 +17,7 @@ package com.continuuity.weave.internal.json;
 
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
-import com.continuuity.weave.internal.api.DefaultWeaveSpecification;
+import com.continuuity.weave.internal.DefaultWeaveSpecification;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;

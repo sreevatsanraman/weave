@@ -20,11 +20,12 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.api.WeaveSpecification;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
+import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -318,6 +319,13 @@ public final class ApplicationMasterService implements Service {
       return result;
     }
 
+    // TODO
+    if (message.getScope() == Message.Scope.ALL_RUNNABLE) {
+      for (String runnableName : weaveSpec.getRunnables().keySet()) {
+        ZKClient zkClient = ZKClients.namespace(serviceDelegate.getZKClient(), getZKNamespace(runnableName));
+//        ZKMessages.sendMessage(zkCl)
+      }
+    }
 
     return result;
   }

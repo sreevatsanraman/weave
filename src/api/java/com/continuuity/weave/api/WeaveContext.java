@@ -18,10 +18,13 @@ package com.continuuity.weave.api;
 import java.net.InetAddress;
 
 /**
- *
+ * Represents runtime context of a {@link WeaveRunnable}.
  */
 public interface WeaveContext {
 
+  /**
+   * Returns the hostname that the runnable is running on.
+   */
   InetAddress getHost();
 
   /**
@@ -34,6 +37,9 @@ public interface WeaveContext {
    */
   String[] getApplicationArguments();
 
+  /**
+   * Returns the {@link WeaveRunnableSpecification} that was created by {@link WeaveRunnable#configure()}.
+   */
   WeaveRunnableSpecification getSpecification();
 
   /**

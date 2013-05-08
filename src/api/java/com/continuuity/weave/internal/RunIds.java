@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,19 +13,44 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.zookeeper;
+package com.continuuity.weave.internal;
 
-import com.continuuity.internal.zk.NamespaceZKClient;
+import com.continuuity.weave.api.RunId;
+
+import java.util.UUID;
 
 /**
  *
  */
-public final class ZKClients {
+public final class RunIds {
 
-  public static ZKClient namespace(ZKClient zkClient, String namespace) {
-    return new NamespaceZKClient(zkClient, namespace);
+  public static RunId generate() {
+    return new RunIdImpl(UUID.randomUUID().toString());
   }
 
-  private ZKClients() {
+  public static RunId fromString(String str) {
+    return new RunIdImpl(str);
+  }
+
+  private RunIds() {
+  }
+
+  private static final class RunIdImpl implements RunId {
+
+    final String id;
+
+    private RunIdImpl(String id) {
+      this.id = id;
+    }
+
+    @Override
+    public String getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return getId();
+    }
   }
 }

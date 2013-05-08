@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.weave.internal.api.DefaultWeaveRunnableSpecification;
+import com.continuuity.weave.internal.DefaultWeaveRunnableSpecification;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;

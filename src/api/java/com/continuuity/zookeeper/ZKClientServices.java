@@ -15,8 +15,8 @@
  */
 package com.continuuity.zookeeper;
 
-import com.continuuity.internal.zk.FailureRetryZKClientService;
-import com.continuuity.internal.zk.RewatchOnExpireZKClientService;
+import com.continuuity.internal.zookeeper.FailureRetryZKClientService;
+import com.continuuity.internal.zookeeper.RewatchOnExpireZKClientService;
 
 /**
  * Provides static factory method to create {@link ZKClientService} with modified behaviors.

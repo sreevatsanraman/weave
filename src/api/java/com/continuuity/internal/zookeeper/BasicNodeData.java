@@ -13,25 +13,25 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.zk;
+package com.continuuity.internal.zookeeper;
 
-import com.continuuity.zookeeper.NodeChildren;
+import com.continuuity.zookeeper.NodeData;
 import com.google.common.base.Objects;
 import org.apache.zookeeper.data.Stat;
 
-import java.util.List;
+import java.util.Arrays;
 
 /**
  *
  */
-final class BasicNodeChildren implements NodeChildren {
+final class BasicNodeData implements NodeData {
 
+  private final byte[] data;
   private final Stat stat;
-  private final List<String> children;
 
-  BasicNodeChildren(List<String> children, Stat stat) {
+  BasicNodeData(byte[] data, Stat stat) {
+    this.data = data;
     this.stat = stat;
-    this.children = children;
   }
 
   @Override
@@ -40,8 +40,8 @@ final class BasicNodeChildren implements NodeChildren {
   }
 
   @Override
-  public List<String> getChildren() {
-    return children;
+  public byte[] getData() {
+    return data;
   }
 
   @Override
@@ -49,16 +49,17 @@ final class BasicNodeChildren implements NodeChildren {
     if (this == o) {
       return true;
     }
-    if (o == null || !(o instanceof NodeChildren)) {
+    if (o == null || !(o instanceof NodeData)) {
       return false;
     }
 
-    NodeChildren that = (NodeChildren) o;
-    return stat.equals(that.getStat()) && children.equals(that.getChildren());
+    BasicNodeData that = (BasicNodeData) o;
+
+    return stat.equals(that.getStat()) && Arrays.equals(data, that.getData());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(children, stat);
+    return Objects.hashCode(data, stat);
   }
 }

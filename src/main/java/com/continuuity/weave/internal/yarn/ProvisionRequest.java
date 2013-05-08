@@ -5,7 +5,7 @@ package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import org.apache.hadoop.yarn.client.AMRMClient;
 
 /**

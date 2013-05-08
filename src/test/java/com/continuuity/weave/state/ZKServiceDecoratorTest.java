@@ -1,7 +1,7 @@
 package com.continuuity.weave.state;
 
 import com.continuuity.weave.api.RunId;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.continuuity.zookeeper.NodeData;

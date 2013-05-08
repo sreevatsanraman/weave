@@ -18,7 +18,7 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.logging.LogHandler;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.google.common.base.Suppliers;

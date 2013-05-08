@@ -15,10 +15,10 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.weave.internal.api.DefaultLocalFile;
-import com.continuuity.weave.internal.api.DefaultRuntimeSpecification;
-import com.continuuity.weave.internal.api.DefaultWeaveRunnableSpecification;
-import com.continuuity.weave.internal.api.DefaultWeaveSpecification;
+import com.continuuity.weave.internal.DefaultLocalFile;
+import com.continuuity.weave.internal.DefaultRuntimeSpecification;
+import com.continuuity.weave.internal.DefaultWeaveRunnableSpecification;
+import com.continuuity.weave.internal.DefaultWeaveSpecification;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;

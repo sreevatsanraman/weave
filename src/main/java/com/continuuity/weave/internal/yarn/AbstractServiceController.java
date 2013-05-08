@@ -19,8 +19,6 @@ import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.internal.StackTraceElementCodec;
-import com.continuuity.weave.internal.state.Message;
-import com.continuuity.weave.internal.state.MessageCodec;
 import com.continuuity.weave.internal.state.Messages;
 import com.continuuity.weave.internal.state.StateNode;
 import com.continuuity.weave.internal.state.SystemMessages;
@@ -34,7 +32,6 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.GsonBuilder;
-import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,12 +80,13 @@ public abstract class AbstractServiceController implements ServiceController {
 
   @Override
   public ListenableFuture<Command> sendCommand(Command command) {
-    return sendMessage(Messages.createForAll(command), command);
+    return ZKMessages.sendMessage(zkClient, getZKPath("messages/msg"), Messages.createForAll(command), command);
   }
 
   @Override
   public ListenableFuture<Command> sendCommand(String runnableName, Command command) {
-    return sendMessage(Messages.createForRunnable(runnableName, command), command);
+    return ZKMessages.sendMessage(zkClient, getZKPath("messages/msg"),
+                                  Messages.createForRunnable(runnableName, command), command);
   }
 
   @Override
@@ -100,23 +98,24 @@ public abstract class AbstractServiceController implements ServiceController {
   public ListenableFuture<State> stop() {
     State oldState = state.getAndSet(State.STOPPING);
     if (oldState == null || oldState == State.STARTING || oldState == State.RUNNING) {
-      return Futures.transform(sendMessage(SystemMessages.stopApplication(), State.TERMINATED),
-                               new AsyncFunction<State, State>() {
+      return Futures.transform(
+        ZKMessages.sendMessage(zkClient, getZKPath("messages/msg"), SystemMessages.stopApplication(),
+                               State.TERMINATED), new AsyncFunction<State, State>() {
         @Override
         public ListenableFuture<State> apply(State input) throws Exception {
           // Wait for the instance ephemeral node goes away
-          return Futures.transform(ZKOperations.watchDeleted(zkClient, "/instances/" + runId),
-                                   new Function<String, State>() {
-                                     @Override
-                                     public State apply(String input) {
-                                       if (LOG.isDebugEnabled()) {
-                                         LOG.debug("Remote service stopped: " + runId);
-                                       }
-                                       state.set(State.TERMINATED);
-                                       fireStateChange(new StateNode(State.TERMINATED, null));
-                                       return State.TERMINATED;
-                                     }
-                                   });
+          return Futures.transform(
+            ZKOperations.watchDeleted(zkClient, "/instances/" + runId), new Function<String, State>() {
+               @Override
+               public State apply(String input) {
+                 if (LOG.isDebugEnabled()) {
+                   LOG.debug("Remote service stopped: " + runId);
+                 }
+                 state.set(State.TERMINATED);
+                 fireStateChange(new StateNode(State.TERMINATED, null));
+                 return State.TERMINATED;
+               }
+             });
         }
       });
     }
@@ -147,33 +146,6 @@ public abstract class AbstractServiceController implements ServiceController {
       .registerTypeAdapter(StackTraceElement.class, new StackTraceElementCodec())
       .create()
       .fromJson(new String(data, Charsets.UTF_8), StateNode.class);
-  }
-
-  /**
-   * Sends a message to remote service by creating the message node. It returns a {@link ListenableFuture} that
-   * will be completed when the message is processed, which signaled by removal of the newly created node.
-   *
-   * @param message Message to sent
-   * @param completionResult Result to set into the returning {@link ListenableFuture} when the message is processed.
-   * @param <V> Type of the completion result
-   * @return A {@link ListenableFuture} that will be completed when message is processed.
-   */
-  private <V> ListenableFuture<V> sendMessage(final Message message, final V completionResult) {
-    return Futures.transform(zkClient.create(getZKPath("messages/msg"), MessageCodec.encode(message),
-                                             CreateMode.PERSISTENT_SEQUENTIAL), new AsyncFunction<String, V>() {
-      @Override
-      public ListenableFuture<V> apply(String path) throws Exception {
-        return Futures.transform(ZKOperations.watchDeleted(zkClient, path), new Function<String, V>() {
-          @Override
-          public V apply(String path) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Message processed in " + path + ": " + message);
-            }
-            return completionResult;
-          }
-        });
-      }
-    });
   }
 
   private String getZKPath(String path) {

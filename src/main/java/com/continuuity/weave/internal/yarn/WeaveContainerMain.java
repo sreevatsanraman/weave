@@ -19,7 +19,7 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.ServiceMain;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;

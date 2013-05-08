@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.weave.internal.api.DefaultResourceSpecification;
+import com.continuuity.weave.internal.DefaultResourceSpecification;
 
 /**
  *

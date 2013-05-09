@@ -24,6 +24,7 @@ import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.internal.utils.Instances;
 import com.continuuity.weave.internal.utils.Threads;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
@@ -45,7 +46,6 @@ import java.util.concurrent.Executors;
  */
 public final class WeaveContainerService implements Service {
 
-  private static final int ZK_TIMEOUT = 10000;    // 10 seconds
   private static final Logger LOG = LoggerFactory.getLogger(WeaveContainerService.class);
 
   private final WeaveRunnableSpecification specification;
@@ -56,12 +56,11 @@ public final class WeaveContainerService implements Service {
   private ExecutorService commandExecutor;
   private WeaveRunnable runnable;
 
-  public WeaveContainerService(WeaveContext context, ContainerInfo containerInfo, String zkConnectionStr,
+  public WeaveContainerService(WeaveContext context, ContainerInfo containerInfo, ZKClient zkClient,
                                RunId runId, WeaveRunnableSpecification specification, ClassLoader classLoader) {
     this.specification = specification;
     this.classLoader = classLoader;
-    this.serviceDelegate = new ZKServiceDecorator(zkConnectionStr, ZK_TIMEOUT, runId,
-                                                  createLiveNodeSupplier(), new ServiceDelegate());
+    this.serviceDelegate = new ZKServiceDecorator(zkClient, runId, createLiveNodeSupplier(), new ServiceDelegate());
     this.context = context;
     this.containerInfo = containerInfo;
   }

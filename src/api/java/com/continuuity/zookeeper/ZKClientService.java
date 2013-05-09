@@ -43,7 +43,7 @@ public interface ZKClientService extends ZKClient, Service {
   public static final class Builder {
 
     private final String connectStr;
-    private int timeout = 4000;
+    private int timeout = 10000;
     private Watcher connectionWatcher;
 
     /**

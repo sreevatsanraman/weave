@@ -15,14 +15,18 @@
  */
 package com.continuuity.weave.internal.utils;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
 /**
  *
  */
 public final class Threads {
+
+  public static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
 
   /**
    * Handy method to create {@link ThreadFactory} that creates daemon threads with the given name format.

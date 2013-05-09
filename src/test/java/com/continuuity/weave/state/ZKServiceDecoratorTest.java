@@ -6,6 +6,7 @@ import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -58,7 +59,7 @@ public class ZKServiceDecoratorTest {
 
         RunId runId = RunIds.generate();
         final Semaphore semaphore = new Semaphore(0);
-        ZKServiceDecorator service = new ZKServiceDecorator(zkServer.getConnectionStr() + namespace, 10000,
+        ZKServiceDecorator service = new ZKServiceDecorator(ZKClients.namespace(zkClient, namespace),
                                                             runId, Suppliers.ofInstance(content),
                                                             new AbstractIdleService() {
           @Override

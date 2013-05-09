@@ -15,45 +15,43 @@
  */
 package com.continuuity.internal.zookeeper;
 
-import com.continuuity.zookeeper.ForwardingZKClientService;
+import com.continuuity.weave.internal.utils.Threads;
+import com.continuuity.zookeeper.ForwardingZKClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
 import com.continuuity.zookeeper.RetryStrategy;
 import com.continuuity.zookeeper.RetryStrategy.OperationType;
+import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A {@link com.continuuity.zookeeper.ZKClientService} that will invoke {@link com.continuuity.zookeeper.RetryStrategy} on operation failure.
- * This {@link com.continuuity.zookeeper.ZKClientService} works by delegating calls to another {@link com.continuuity.zookeeper.ZKClientService}
+ * A {@link ZKClient} that will invoke {@link RetryStrategy} on operation failure.
+ * This {@link ZKClient} works by delegating calls to another {@link ZKClientService}
  * and listen for the result. If the result is a failure, and is
- * {@link RetryUtils#canRetry(org.apache.zookeeper.KeeperException.Code) retryable}, the given {@link com.continuuity.zookeeper.RetryStrategy}
+ * {@link RetryUtils#canRetry(org.apache.zookeeper.KeeperException.Code) retryable}, the given {@link RetryStrategy}
  * will be called to determine the next retry time, or give up, depending on the value returned by the strategy.
  */
-public final class FailureRetryZKClientService extends ForwardingZKClientService {
+public final class FailureRetryZKClient extends ForwardingZKClient {
 
+  private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(
+                                                                Threads.createDaemonThreadFactory("retry-zkclient"));
   private final RetryStrategy retryStrategy;
-  private final Executor sameThreadExecutor;
-  private ScheduledExecutorService scheduler;
 
-  public FailureRetryZKClientService(ZKClientService delegate, RetryStrategy retryStrategy) {
+  public FailureRetryZKClient(ZKClient delegate, RetryStrategy retryStrategy) {
     super(delegate);
     this.retryStrategy = retryStrategy;
-    this.sameThreadExecutor = MoreExecutors.sameThreadExecutor();
   }
 
   @Override
@@ -64,13 +62,13 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
   @Override
   public OperationFuture<String> create(final String path, final byte[] data,
                                         final CreateMode createMode, final boolean createParent) {
-    final SettableOperationFuture<String> result = SettableOperationFuture.create(path, sameThreadExecutor);
+    final SettableOperationFuture<String> result = SettableOperationFuture.create(path, Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.create(path, data, createMode, createParent),
                         new OperationFutureCallback<String>(OperationType.CREATE, System.currentTimeMillis(),
                                                             path, result, new Supplier<OperationFuture<String>>() {
                           @Override
                           public OperationFuture<String> get() {
-                            return FailureRetryZKClientService.super.create(path, data, createMode, createParent);
+                            return FailureRetryZKClient.super.create(path, data, createMode, createParent);
                           }
                         }));
     return result;
@@ -83,13 +81,13 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
 
   @Override
   public OperationFuture<Stat> exists(final String path, final Watcher watcher) {
-    final SettableOperationFuture<Stat> result = SettableOperationFuture.create(path, sameThreadExecutor);
+    final SettableOperationFuture<Stat> result = SettableOperationFuture.create(path, Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.exists(path, watcher),
                         new OperationFutureCallback<Stat>(OperationType.EXISTS, System.currentTimeMillis(),
                                                           path, result, new Supplier<OperationFuture<Stat>>() {
                           @Override
                           public OperationFuture<Stat> get() {
-                            return FailureRetryZKClientService.super.exists(path, watcher);
+                            return FailureRetryZKClient.super.exists(path, watcher);
                           }
                         }));
     return result;
@@ -102,14 +100,15 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
 
   @Override
   public OperationFuture<NodeChildren> getChildren(final String path, final Watcher watcher) {
-    final SettableOperationFuture<NodeChildren> result = SettableOperationFuture.create(path, sameThreadExecutor);
+    final SettableOperationFuture<NodeChildren> result = SettableOperationFuture.create(path,
+                                                                                        Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.getChildren(path, watcher),
                         new OperationFutureCallback<NodeChildren>(OperationType.GET_CHILDREN,
                                                                   System.currentTimeMillis(), path, result,
                                                                   new Supplier<OperationFuture<NodeChildren>>() {
                           @Override
                           public OperationFuture<NodeChildren> get() {
-                            return FailureRetryZKClientService.super.getChildren(path, watcher);
+                            return FailureRetryZKClient.super.getChildren(path, watcher);
                           }
                         }));
     return result;
@@ -122,13 +121,13 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
 
   @Override
   public OperationFuture<NodeData> getData(final String path, final Watcher watcher) {
-    final SettableOperationFuture<NodeData> result = SettableOperationFuture.create(path, sameThreadExecutor);
+    final SettableOperationFuture<NodeData> result = SettableOperationFuture.create(path, Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.getData(path, watcher),
                         new OperationFutureCallback<NodeData>(OperationType.GET_DATA, System.currentTimeMillis(),
                                                               path, result, new Supplier<OperationFuture<NodeData>>() {
                           @Override
                           public OperationFuture<NodeData> get() {
-                            return FailureRetryZKClientService.super.getData(path, watcher);
+                            return FailureRetryZKClient.super.getData(path, watcher);
                           }
                         }));
     return result;
@@ -141,13 +140,13 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
 
   @Override
   public OperationFuture<Stat> setData(final String dataPath, final byte[] data, final int version) {
-    final SettableOperationFuture<Stat> result = SettableOperationFuture.create(dataPath, sameThreadExecutor);
+    final SettableOperationFuture<Stat> result = SettableOperationFuture.create(dataPath, Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.setData(dataPath, data, version),
                         new OperationFutureCallback<Stat>(OperationType.SET_DATA, System.currentTimeMillis(),
                                                           dataPath, result, new Supplier<OperationFuture<Stat>>() {
                           @Override
                           public OperationFuture<Stat> get() {
-                            return FailureRetryZKClientService.super.setData(dataPath, data, version);
+                            return FailureRetryZKClient.super.setData(dataPath, data, version);
                           }
                         }));
     return result;
@@ -160,33 +159,17 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
 
   @Override
   public OperationFuture<String> delete(final String deletePath, final int version) {
-    final SettableOperationFuture<String> result = SettableOperationFuture.create(deletePath, sameThreadExecutor);
+    final SettableOperationFuture<String> result = SettableOperationFuture.create(deletePath,
+                                                                                  Threads.SAME_THREAD_EXECUTOR);
     Futures.addCallback(super.delete(deletePath, version),
                         new OperationFutureCallback<String>(OperationType.DELETE, System.currentTimeMillis(),
-                                                            deletePath, result, new Supplier<OperationFuture<String>>() {
+                                                            deletePath, result, new Supplier<OperationFuture<String>>
+                          () {
                           @Override
                           public OperationFuture<String> get() {
-                            return FailureRetryZKClientService.super.delete(deletePath, version);
+                            return FailureRetryZKClient.super.delete(deletePath, version);
                           }
                         }));
-    return result;
-  }
-
-  @Override
-  public ListenableFuture<State> start() {
-    scheduler = Executors.newSingleThreadScheduledExecutor();
-    return super.start();
-  }
-
-  @Override
-  public ListenableFuture<State> stop() {
-    ListenableFuture<State> result = super.stop();
-    result.addListener(new Runnable() {
-      @Override
-      public void run() {
-        scheduler.shutdownNow();
-      }
-    }, sameThreadExecutor);
     return result;
   }
 
@@ -237,7 +220,7 @@ public final class FailureRetryZKClientService extends ForwardingZKClientService
       }
 
       // Schedule the retry.
-      scheduler.schedule(new Runnable() {
+      SCHEDULER.schedule(new Runnable() {
         @Override
         public void run() {
           Futures.addCallback(retryAction.get(), OperationFutureCallback.this);

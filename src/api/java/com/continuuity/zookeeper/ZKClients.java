@@ -15,12 +15,40 @@
  */
 package com.continuuity.zookeeper;
 
+import com.continuuity.internal.zookeeper.FailureRetryZKClient;
 import com.continuuity.internal.zookeeper.NamespaceZKClient;
+import com.continuuity.internal.zookeeper.RewatchOnExpireZKClient;
 
 /**
  *
  */
 public final class ZKClients {
+
+  /**
+   * Creates a {@link ZKClient} that will perform auto re-watch on all existing watches
+   * when reconnection happens after session expiration. All {@link org.apache.zookeeper.Watcher Watchers}
+   * set through the returned {@link ZKClient} would not receive any connection events.
+   *
+   * @param client The {@link ZKClient} for operations delegation.
+   * @return A {@link ZKClient} that will do auto re-watch on all methods that accept a
+   *        {@link org.apache.zookeeper.Watcher} upon session expiration.
+   */
+  public static ZKClient reWatchOnExpire(ZKClient client) {
+    return new RewatchOnExpireZKClient(client);
+  }
+
+  /**
+   * Creates a {@link ZKClient} that will retry interim failure (e.g. connection loss, session expiration)
+   * based on the given {@link RetryStrategy}.
+   *
+   * @param client The {@link ZKClient} for operations delegation.
+   * @param retryStrategy The {@link RetryStrategy} to be invoke when there is operation failure.
+   * @return A {@link ZKClient}.
+   */
+  public static ZKClient retryOnFailure(ZKClient client, RetryStrategy retryStrategy) {
+    return new FailureRetryZKClient(client, retryStrategy);
+  }
+
 
   public static ZKClient namespace(ZKClient zkClient, String namespace) {
     return new NamespaceZKClient(zkClient, namespace);

@@ -16,23 +16,23 @@
 package com.continuuity.internal.zookeeper;
 
 import com.continuuity.internal.zookeeper.RewatchOnExpireWatcher.ActionType;
-import com.continuuity.zookeeper.ForwardingZKClientService;
+import com.continuuity.zookeeper.ForwardingZKClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
-import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 /**
- * A {@link com.continuuity.zookeeper.ZKClientService} that will rewatch automatically when session expired and reconnect.
+ * A {@link com.continuuity.zookeeper.ZKClient} that will rewatch automatically when session expired and reconnect.
  * The rewatch logic is mainly done in {@link RewatchOnExpireWatcher}.
  */
-public final class RewatchOnExpireZKClientService extends ForwardingZKClientService {
+public final class RewatchOnExpireZKClient extends ForwardingZKClient {
 
-  public RewatchOnExpireZKClientService(ZKClientService delegate) {
+  public RewatchOnExpireZKClient(ZKClient delegate) {
     super(delegate);
   }
 

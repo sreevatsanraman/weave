@@ -32,6 +32,15 @@ public abstract class ForwardingZKClient implements ZKClient {
     this.delegate = delegate;
   }
 
+  public final ZKClient getDelegate() {
+    return delegate;
+  }
+
+  @Override
+  public void addConnectionWatcher(Watcher watcher) {
+    delegate.addConnectionWatcher(watcher);
+  }
+
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode) {
     return delegate.create(path, data, createMode);

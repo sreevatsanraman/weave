@@ -5,6 +5,7 @@ import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.WeaveRunnerService;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
+import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.weave.internal.yarn.YarnWeaveRunnerService;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.continuuity.zookeeper.Discoverable;
@@ -43,7 +44,6 @@ public class EchoServerTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(EchoServerTest.class);
 
-  @Ignore
   @Test
   public void testEchoServer() throws InterruptedException, ExecutionException, IOException {
     WeaveRunnerService weaveRunner = new YarnWeaveRunnerService(new YarnConfiguration(),
@@ -65,7 +65,7 @@ public class EchoServerTest {
       public void running() {
         running.countDown();
       }
-    }, MoreExecutors.sameThreadExecutor());
+    }, Threads.SAME_THREAD_EXECUTOR);
 
     Assert.assertTrue(running.await(30, TimeUnit.SECONDS));
 
@@ -93,9 +93,9 @@ public class EchoServerTest {
       }
     }
 
-    controller.stop().get();
+    TimeUnit.SECONDS.sleep(2);
 
-    TimeUnit.SECONDS.sleep(5);
+    controller.stop().get();
   }
 
   @Before

@@ -15,6 +15,7 @@
  */
 package com.continuuity.internal.zookeeper;
 
+import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.ForwardingZKClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
@@ -35,7 +36,6 @@ import java.util.concurrent.Executor;
 */
 public final class NamespaceZKClient extends ForwardingZKClient {
 
-  private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
   private final String namespace;
 
   public NamespaceZKClient(ZKClient delegate, String namespace) {
@@ -105,7 +105,7 @@ public final class NamespaceZKClient extends ForwardingZKClient {
   }
 
   private <V> SettableOperationFuture<V> createFuture(String path) {
-    return SettableOperationFuture.create(namespace + path, SAME_THREAD_EXECUTOR);
+    return SettableOperationFuture.create(namespace + path, Threads.SAME_THREAD_EXECUTOR);
   }
 
   private <V> OperationFuture<V> relayFuture(final OperationFuture<V> from, final SettableOperationFuture<V> to) {
@@ -135,7 +135,7 @@ public final class NamespaceZKClient extends ForwardingZKClient {
           to.setException(e);
         }
       }
-    }, SAME_THREAD_EXECUTOR);
+    }, Threads.SAME_THREAD_EXECUTOR);
     return to;
   }
 }

@@ -30,8 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class Services {
 
-  private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
-
   /**
    * Starts a list of {@link Service} one by one. Starting of next Service is triggered from the callback listener
    * thread of the previous Service.
@@ -73,7 +71,7 @@ public final class Services {
 
     ListenableFuture<Service.State> future = doStart ? firstService.start() : firstService.stop();
     future.addListener(createChainListener(future, moreServices, new AtomicInteger(0), result, resultFuture, doStart),
-                       SAME_THREAD_EXECUTOR);
+                       Threads.SAME_THREAD_EXECUTOR);
     return resultFuture;
   }
 
@@ -99,7 +97,7 @@ public final class Services {
         }
         ListenableFuture<Service.State> actionFuture = doStart ? services[nextIdx].start() : services[nextIdx].stop();
         actionFuture.addListener(createChainListener(actionFuture, services, idx, result, resultFuture, doStart),
-                               SAME_THREAD_EXECUTOR);
+                                 Threads.SAME_THREAD_EXECUTOR);
       }
     };
   }

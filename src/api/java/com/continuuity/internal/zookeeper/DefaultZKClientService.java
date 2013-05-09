@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -59,7 +60,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
   private final String zkStr;
   private final int sessionTimeout;
-  private final Watcher connectionWatcher;
+  private final List<Watcher> connectionWatchers;
   private final AtomicReference<ZooKeeper> zooKeeper;
   private final Function<String, List<ACL>> aclMapper;
   private final Service serviceDelegate;
@@ -68,7 +69,9 @@ public final class DefaultZKClientService implements ZKClientService {
   public DefaultZKClientService(String zkStr, int sessionTimeout, Watcher connectionWatcher) {
     this.zkStr = zkStr;
     this.sessionTimeout = sessionTimeout;
-    this.connectionWatcher = wrapWatcher(connectionWatcher);
+    this.connectionWatchers = new CopyOnWriteArrayList<Watcher>();
+    addConnectionWatcher(connectionWatcher);
+
     this.zooKeeper = new AtomicReference<ZooKeeper>();
 
     // TODO: Add ACL
@@ -79,6 +82,13 @@ public final class DefaultZKClientService implements ZKClientService {
       }
     };
     serviceDelegate = new ServiceDelegate();
+  }
+
+  @Override
+  public void addConnectionWatcher(Watcher watcher) {
+    if (watcher != null) {
+      connectionWatchers.add(wrapWatcher(watcher));
+    }
   }
 
   @Override
@@ -397,8 +407,10 @@ public final class DefaultZKClientService implements ZKClientService {
           t.start();
         }
       } finally {
-        if (connectionWatcher != null && event.getType() == Event.EventType.None) {
-          connectionWatcher.process(event);
+        if (event.getType() == Event.EventType.None && !connectionWatchers.isEmpty()) {
+          for (Watcher connectionWatcher : connectionWatchers) {
+            connectionWatcher.process(event);
+          }
         }
       }
     }

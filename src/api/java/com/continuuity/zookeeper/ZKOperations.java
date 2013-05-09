@@ -15,6 +15,7 @@
  */
 package com.continuuity.zookeeper;
 
+import com.continuuity.weave.internal.utils.Threads;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -38,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class ZKOperations {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZKOperations.class);
-  private static final Executor SAME_THREAD_EXECUTOR = MoreExecutors.sameThreadExecutor();
 
   public interface DataCallback {
     /**
@@ -124,7 +124,7 @@ public final class ZKOperations {
                 LOG.error("Failed to watch data for path " + path, e);
               }
             }
-          }, SAME_THREAD_EXECUTOR);
+          }, Threads.SAME_THREAD_EXECUTOR);
           watchExists(zkClient, path, existCompletion);
           return;
         }

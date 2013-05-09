@@ -17,7 +17,7 @@ package com.continuuity.internal.zookeeper;
 
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
-import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import org.apache.zookeeper.KeeperException;
@@ -42,13 +42,13 @@ final class RewatchOnExpireWatcher implements Watcher {
     DATA
   }
 
-  private final ZKClientService client;
+  private final ZKClient client;
   private final ActionType actionType;
   private final String path;
   private final Watcher delegate;
   private final AtomicMarkableReference<Object> lastResult;
 
-  RewatchOnExpireWatcher(ZKClientService client, ActionType actionType, String path, Watcher delegate) {
+  RewatchOnExpireWatcher(ZKClient client, ActionType actionType, String path, Watcher delegate) {
     this.client = client;
     this.actionType = actionType;
     this.path = path;

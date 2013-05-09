@@ -25,6 +25,11 @@ import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.utils.Services;
 import com.continuuity.zookeeper.DiscoveryService;
+import com.continuuity.zookeeper.RetryStrategies;
+import com.continuuity.zookeeper.ZKClient;
+import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.AsyncFunction;
@@ -38,6 +43,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -55,10 +61,12 @@ public final class WeaveContainerMain extends ServiceMain {
     String runnableName = System.getenv(EnvKeys.WEAVE_RUNNABLE_NAME);
     int instanceId = Integer.parseInt(System.getenv(EnvKeys.WEAVE_INSTANCE_ID));
 
-    System.out.println("ZK: " + zkConnectStr);
-    System.out.println("Container ZK: " + getContainerZKConnect(zkConnectStr, runnableName));
+    ZKClientService zkClientService = ZKClientServices.delegate(
+                                        ZKClients.reWatchOnExpire(
+                                          ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnectStr).build(),
+                                                                   RetryStrategies.fixDelay(1, TimeUnit.SECONDS))));
 
-    DiscoveryService discoveryService = new ZKDiscoveryService(zkConnectStr);
+    DiscoveryService discoveryService = new ZKDiscoveryService(zkClientService);
 
     WeaveSpecification weaveSpec = loadWeaveSpec(weaveSpecFile);
     WeaveRunnableSpecification runnableSpec = weaveSpec.getRunnables().get(runnableName).getRunnableSpecification();
@@ -66,14 +74,14 @@ public final class WeaveContainerMain extends ServiceMain {
     WeaveContext context = new BasicWeaveContext(containerInfo.getHost(), args,
                                                   decodeArgs(System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS)),
                                                   runnableSpec, instanceId, discoveryService);
-    new WeaveContainerMain().doMain(wrapService(new WeaveContainerService(context, containerInfo,
-                                                              getContainerZKConnect(zkConnectStr, runnableName),
-                                                              runId, runnableSpec, ClassLoader.getSystemClassLoader()),
-                                                discoveryService));
+    new WeaveContainerMain().doMain(
+      wrapService(new WeaveContainerService(context, containerInfo, getContainerZKClient(zkClientService, runnableName),
+                                            runId, runnableSpec, ClassLoader.getSystemClassLoader()),
+                  discoveryService, zkClientService));
   }
 
-  private static String getContainerZKConnect(String zkConnectStr, String runnableName) {
-    return String.format("%s/runnables/%s", zkConnectStr, runnableName);
+  private static ZKClient getContainerZKClient(ZKClient zkClient, String runnableName) {
+    return ZKClients.namespace(zkClient, "/runnables/" + runnableName);
   }
 
   private static WeaveSpecification loadWeaveSpec(File specFile) throws IOException {
@@ -89,12 +97,14 @@ public final class WeaveContainerMain extends ServiceMain {
     return new Gson().fromJson(args, String[].class);
   }
 
-  private static Service wrapService(final Service service, final DiscoveryService discoverService) {
+  private static Service wrapService(final WeaveContainerService containerService,
+                                     final DiscoveryService discoveryService,
+                                     final ZKClientService zkClientService) {
     return new Service() {
 
       @Override
       public ListenableFuture<State> start() {
-        return Futures.transform(Services.chainStart(discoverService, service),
+        return Futures.transform(Services.chainStart(zkClientService, discoveryService, containerService),
                                  new AsyncFunction<List<ListenableFuture<State>>, State>() {
                                    @Override
                                    public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
@@ -110,17 +120,17 @@ public final class WeaveContainerMain extends ServiceMain {
 
       @Override
       public boolean isRunning() {
-        return service.isRunning();
+        return containerService.isRunning();
       }
 
       @Override
       public State state() {
-        return service.state();
+        return containerService.state();
       }
 
       @Override
       public ListenableFuture<State> stop() {
-        return Futures.transform(Services.chainStop(service, discoverService),
+        return Futures.transform(Services.chainStop(containerService, discoveryService, zkClientService),
                                  new AsyncFunction<List<ListenableFuture<State>>, State>() {
                                    @Override
                                    public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
@@ -136,7 +146,7 @@ public final class WeaveContainerMain extends ServiceMain {
 
       @Override
       public void addListener(Listener listener, Executor executor) {
-        service.addListener(listener, executor);
+        containerService.addListener(listener, executor);
       }
     };
   }

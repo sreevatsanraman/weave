@@ -25,7 +25,10 @@ import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
+import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClient;
+import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -44,6 +47,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Service;
@@ -92,6 +96,7 @@ public final class ApplicationMasterService implements Service {
 
   private final RunId runId;
   private final String zkConnectStr;
+  private final ZKClientService zkClientService;
   private final WeaveSpecification weaveSpec;
   private final File weaveSpecFile;
   private final ListMultimap<String, String> runnableArgs;
@@ -115,7 +120,11 @@ public final class ApplicationMasterService implements Service {
 
     this.yarnConf = new YarnConfiguration();
 
-    this.serviceDelegate = new ZKServiceDecorator(zkConnectStr, ZK_TIMEOUT, runId,
+    this.zkClientService = ZKClientServices.delegate(
+                            ZKClients.reWatchOnExpire(
+                              ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnectStr).build(),
+                                                       RetryStrategies.fixDelay(1, TimeUnit.SECONDS))));
+    this.serviceDelegate = new ZKServiceDecorator(zkClientService, runId,
                                                   createLiveNodeDataSupplier(), new ServiceDelegate());
 
     // Get the container ID and convert it to ApplicationAttemptId
@@ -166,8 +175,8 @@ public final class ApplicationMasterService implements Service {
     LOG.info("Minimum resource capability: " + minCapability);
 
     // Creates ZK path for runnable and kafka logging service
-    Futures.allAsList(serviceDelegate.getZKClient().create("/" + runId + "/runnables", null, CreateMode.PERSISTENT),
-                      serviceDelegate.getZKClient().create("/" + runId + "/kafka", null, CreateMode.PERSISTENT)).get();
+    Futures.allAsList(zkClientService.create("/" + runId + "/runnables", null, CreateMode.PERSISTENT),
+                      zkClientService.create("/" + runId + "/kafka", null, CreateMode.PERSISTENT)).get();
   }
 
   private void doStop() throws Exception {
@@ -294,7 +303,7 @@ public final class ApplicationMasterService implements Service {
 
       WeaveContainerLauncher launcher = new WeaveContainerLauncher(weaveSpec.getRunnables().get(runnableName),
                                                                    containerRunId, processLauncher,
-                                                                   ZKClients.namespace(serviceDelegate.getZKClient(),
+                                                                   ZKClients.namespace(zkClientService,
                                                                                        getZKNamespace(runnableName)),
                                                                    runnableArgs.get(runnableName),
                                                                    instanceId);
@@ -335,7 +344,7 @@ public final class ApplicationMasterService implements Service {
     // TODO
     if (message.getScope() == Message.Scope.ALL_RUNNABLE) {
       for (String runnableName : weaveSpec.getRunnables().keySet()) {
-        ZKClient zkClient = ZKClients.namespace(serviceDelegate.getZKClient(), getZKNamespace(runnableName));
+        ZKClient zkClient = ZKClients.namespace(zkClientService, getZKNamespace(runnableName));
 //        ZKMessages.sendMessage(zkCl)
       }
     }
@@ -373,7 +382,12 @@ public final class ApplicationMasterService implements Service {
 
   @Override
   public ListenableFuture<State> start() {
-    return serviceDelegate.start();
+    return Futures.transform(zkClientService.start(), new AsyncFunction<State, State>() {
+      @Override
+      public ListenableFuture<State> apply(State input) throws Exception {
+        return serviceDelegate.start();
+      }
+    });
   }
 
   @Override
@@ -393,7 +407,12 @@ public final class ApplicationMasterService implements Service {
 
   @Override
   public ListenableFuture<State> stop() {
-    return serviceDelegate.stop();
+    return Futures.transform(serviceDelegate.stop(), new AsyncFunction<State, State>() {
+      @Override
+      public ListenableFuture<State> apply(State input) throws Exception {
+        return zkClientService.stop();
+      }
+    });
   }
 
   @Override

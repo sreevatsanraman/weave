@@ -25,6 +25,14 @@ import javax.annotation.Nullable;
  * A ZooKeeper client that provides asynchronous zookeeper operations.
  */
 public interface ZKClient {
+
+  /**
+   * Adds a {@link Watcher} that will be called whenever connection state change.
+   * @param watcher The watcher to set.
+   * @return This builder.
+   */
+  void addConnectionWatcher(Watcher watcher);
+
   /**
    * Same as calling
    * {@link #create(String, byte[], org.apache.zookeeper.CreateMode, boolean) create(path, data, createMode, true)}.

@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.internal.discovery.ZKDiscoveryService;
 import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.FetchedMessage;
 import com.continuuity.kafka.client.KafkaClient;
@@ -25,6 +26,8 @@ import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.StackTraceElementCodec;
 import com.continuuity.weave.internal.logging.LogEntryDecoder;
 import com.continuuity.weave.internal.utils.Services;
+import com.continuuity.zookeeper.Discoverable;
+import com.continuuity.zookeeper.DiscoveryServiceClient;
 import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClientService;
 import com.continuuity.zookeeper.ZKClientServices;
@@ -58,6 +61,7 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
   private final ZKClientService zkClient;
   private final Queue<LogHandler> logHandlers;
   private final KafkaClient kafkaClient;
+  private final DiscoveryServiceClient discoveryServiceClient;
   private final Thread logPoller;
 
   ZKWeaveController(String zkConnect, int zkTimeout, RunId runId, Iterable<LogHandler> logHandlers) {
@@ -71,22 +75,13 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
     this.logHandlers = new ConcurrentLinkedQueue<LogHandler>();
     Iterables.addAll(this.logHandlers, logHandlers);
     this.kafkaClient = new SimpleKafkaClient(String.format("%s/%s/kafka", zkConnect, runId));
+    this.discoveryServiceClient = new ZKDiscoveryService(String.format("%s/%s", zkConnect, runId));
     this.logPoller = createLogPoller();
   }
 
   void start() {
-    Futures.getUnchecked(zkClient.start());
-    Futures.addCallback(kafkaClient.start(), new FutureCallback<Service.State>() {
-      @Override
-      public void onSuccess(Service.State result) {
-        logPoller.start();
-      }
-
-      @Override
-      public void onFailure(Throwable t) {
-        LOG.error("Failed to start kafka client.", t);
-      }
-    });
+    Futures.getUnchecked(Services.chainStart(zkClient, kafkaClient, discoveryServiceClient));
+    logPoller.start();
     super.doStart(zkClient);
   }
 
@@ -103,13 +98,11 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
         } catch (InterruptedException e) {
           LOG.warn("Joining of log poller thread interrupted.", e);
         }
-        final ListenableFuture<List<ListenableFuture<Service.State>>> stopFuture = Services.chainStop(kafkaClient,
-                                                                                                      zkClient);
-        stopFuture.addListener(new Runnable() {
+        Futures.addCallback(Services.chainStop(discoveryServiceClient, kafkaClient, zkClient),
+                            new FutureCallback<List<ListenableFuture<Service.State>>>() {
           @Override
-          public void run() {
+          public void onSuccess(List<ListenableFuture<Service.State>> states) {
             try {
-              Futures.allAsList(stopFuture.get()).get();
               future.get();
               result.set(State.TERMINATED);
             } catch (Exception e) {
@@ -117,7 +110,12 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
               result.setException(e);
             }
           }
-        }, MoreExecutors.sameThreadExecutor());
+
+          @Override
+          public void onFailure(Throwable t) {
+            result.setException(t);
+          }
+        });
       }
     }, MoreExecutors.sameThreadExecutor());
     return result;
@@ -126,6 +124,11 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
   @Override
   public void addLogHandler(LogHandler handler) {
     logHandlers.add(handler);
+  }
+
+  @Override
+  public Iterable<Discoverable> discoverService(String serviceName) {
+    return discoveryServiceClient.discover(serviceName);
   }
 
   private Thread createLogPoller() {

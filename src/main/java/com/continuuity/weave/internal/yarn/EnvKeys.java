@@ -20,7 +20,7 @@ package com.continuuity.weave.internal.yarn;
  */
 public final class EnvKeys {
 
-  public static final String WEAVE_CONTAINER_ZK = "WEAVE_CONTAINER_ZK";
+  public static final String WEAVE_ZK_CONNECT = "WEAVE_ZK_CONNECT";
   public static final String WEAVE_RUN_ID = "WEAVE_RUN_ID";
   public static final String WEAVE_INSTANCE_ID = "WEAVE_INSTANCE_ID";
 

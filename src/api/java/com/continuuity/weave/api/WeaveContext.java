@@ -15,6 +15,8 @@
  */
 package com.continuuity.weave.api;
 
+import com.continuuity.zookeeper.Cancellable;
+
 import java.net.InetAddress;
 
 /**
@@ -46,4 +48,11 @@ public interface WeaveContext {
    * Returns an integer id from 0 to (instanceCount - 1).
    */
   int getInstanceId();
+
+  /**
+   * Registers an endpoint that could be discovered by external party.
+   * @param serviceName Name of the endpoint
+   * @param port Port of the endpoint.
+   */
+  Cancellable registerService(String serviceName, int port);
 }

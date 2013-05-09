@@ -38,7 +38,7 @@ public final class ApplicationMasterMain extends ServiceMain {
    * Starts the application master.
    */
   public static void main(String[] args) throws Exception {
-    String zkConnect = System.getenv(EnvKeys.WEAVE_CONTAINER_ZK);
+    String zkConnect = System.getenv(EnvKeys.WEAVE_ZK_CONNECT);
     File weaveSpec = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
     RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
 

@@ -7,6 +7,12 @@ import com.continuuity.weave.api.WeaveRunnerService;
 import com.continuuity.weave.api.logging.PrinterLogHandler;
 import com.continuuity.weave.internal.yarn.YarnWeaveRunnerService;
 import com.continuuity.weave.zk.InMemoryZKServer;
+import com.continuuity.zookeeper.Discoverable;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
+import com.google.common.io.LineReader;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -19,7 +25,13 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -33,16 +45,16 @@ public class EchoServerTest {
 
   @Ignore
   @Test
-  public void testEchoServer() throws InterruptedException, ExecutionException {
+  public void testEchoServer() throws InterruptedException, ExecutionException, IOException {
     WeaveRunnerService weaveRunner = new YarnWeaveRunnerService(new YarnConfiguration(),
                                                                 zkServer.getConnectionStr() + "/weave");
     weaveRunner.startAndWait();
 
-    WeaveController controller = weaveRunner.prepare(new EchoServer(54321),
+    WeaveController controller = weaveRunner.prepare(new EchoServer(),
                                                      ResourceSpecification.Builder.with()
                                                        .setCores(1)
                                                        .setMemory(1, ResourceSpecification.SizeUnit.GIGA)
-                                                       .setInstances(1)
+                                                       .setInstances(2)
                                                        .build())
                                             .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
                                             .start();
@@ -56,9 +68,34 @@ public class EchoServerTest {
     }, MoreExecutors.sameThreadExecutor());
 
     Assert.assertTrue(running.await(30, TimeUnit.SECONDS));
-    TimeUnit.SECONDS.sleep(10);
+
+    Iterable<Discoverable> echoServices = controller.discoverService("echo");
+    int trial = 0;
+    while (Iterables.size(echoServices) != 2 && trial < 60) {
+      TimeUnit.SECONDS.sleep(1);
+      trial++;
+    }
+    Assert.assertTrue(trial < 60);
+
+    for (Discoverable discoverable : echoServices) {
+      String msg = "Hello: " + discoverable.getSocketAddress();
+
+      Socket socket = new Socket(discoverable.getSocketAddress().getAddress(),
+                                 discoverable.getSocketAddress().getPort());
+      try {
+        PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true);
+        LineReader reader = new LineReader(new InputStreamReader(socket.getInputStream(), Charsets.UTF_8));
+
+        writer.println(msg);
+        Assert.assertEquals(msg, reader.readLine());
+      } finally {
+        socket.close();
+      }
+    }
 
     controller.stop().get();
+
+    TimeUnit.SECONDS.sleep(5);
   }
 
   @Before

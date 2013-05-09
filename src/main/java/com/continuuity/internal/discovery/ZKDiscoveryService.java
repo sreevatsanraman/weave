@@ -48,6 +48,7 @@ import com.google.gson.JsonSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,6 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
   private final AtomicReference<Multimap<String, Discoverable>> services;
   private final ConcurrentMap<String, Boolean> serviceWatched;
   private final ZKClientService client;
-  private final String namespace;
 
   /**
    * Constructs ZKDiscoveryService using the provided zookeeper quorum for storing service registry.
@@ -122,9 +122,8 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
    */
   public ZKDiscoveryService(String zkConnectionString, String namespace) {
     client = ZKClientServices.reWatchOnExpire(
-      ZKClientServices.retryOnFailure(ZKClientService.Builder.of(zkConnectionString).build(),
+      ZKClientServices.retryOnFailure(ZKClientService.Builder.of(zkConnectionString + namespace).build(),
                                       RetryStrategies.fixDelay(2, TimeUnit.SECONDS)));
-    this.namespace = namespace;
     services = new AtomicReference<Multimap<String, Discoverable>>();
     serviceWatched = Maps.newConcurrentMap();
   }
@@ -179,8 +178,8 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
     final Discoverable wrapper = new DiscoverableWrapper(discoverable);
     byte[] discoverableBytes = encode(wrapper);
 
-    // Path <discoverable-base>/<service-name>
-    final String sb = namespace + "/" + wrapper.getName() + "/service-";
+    // Path /<service-name>/service-sequential
+    final String sb = "/" + wrapper.getName() + "/service-";
     final String path = Futures.getUnchecked(client.create(sb, discoverableBytes,
                                                            CreateMode.EPHEMERAL_SEQUENTIAL, true));
     return new Cancellable() {
@@ -201,59 +200,83 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
    * @param service for which we are requested to retrieve the list of {@link Discoverable}
    */
   private void getChildren(final String service) {
-    final String sb = namespace + "/" + service;
+    final String sb = "/" + service;
 
     if(!client.isRunning()) {
       return;
     }
 
-    OperationFuture<NodeChildren> nodeChildren = client.getChildren(sb, new Watcher() {
+    Futures.addCallback(client.exists(sb, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
-        if(event.getType() == Event.EventType.NodeChildrenChanged) {
+        if (event.getType() == Event.EventType.NodeCreated) {
           getChildren(service);
         }
       }
-    });
-
-    Futures.addCallback(nodeChildren, new FutureCallback<NodeChildren>() {
+    }), new FutureCallback<Stat>() {
       @Override
-      public void onSuccess(NodeChildren children) {
-        final Multimap<String, Discoverable> newServices = HashMultimap.create(services.get());
-        newServices.removeAll(service);
-
-        // Fetch data of all children nodes in parallel.
-        List<OperationFuture<NodeData>> dataFutures = Lists.newArrayListWithCapacity(children.getChildren().size());
-        for(String child : children.getChildren()) {
-          String path = sb + "/" + child;
-          dataFutures.add(client.getData(path));
+      public void onSuccess(Stat result) {
+        if (result == null) {
+          // Node not yet exists, the Watcher will get triggered when the node is created.
+          return;
         }
-
-        // Update the service map when all fetching are done.
-        final ListenableFuture<List<NodeData>> fetchFuture = Futures.successfulAsList(dataFutures);
-        fetchFuture.addListener(new Runnable() {
+        Futures.addCallback(client.getChildren(sb, new Watcher() {
           @Override
-          public void run() {
-            for (NodeData nodeData : Futures.getUnchecked(fetchFuture)) {
-              // For successful fetch, decode the content.
-              if (nodeData != null) {
-                Discoverable discoverable = decode(nodeData.getData());
-                if (discoverable != null) {
-                  newServices.put(service, discoverable);
-                }
-              }
+          public void process(WatchedEvent event) {
+            if(event.getType() == Event.EventType.NodeChildrenChanged) {
+              getChildren(service);
             }
-            // Replace the local service register with changes.
-            services.set(newServices);
           }
-        }, SAME_THREAD_EXECUTOR);
+        }), new FutureCallback<NodeChildren>() {
+          @Override
+          public void onSuccess(NodeChildren result) {
+            updateService(result, service);
+          }
+
+          @Override
+          public void onFailure(Throwable t) {
+            LOG.error("Failed to fetch children node for service " + service + ": " + t, t);
+          }
+        });
       }
 
       @Override
       public void onFailure(Throwable t) {
-        LOG.trace(t.getMessage());
+        LOG.error("Failed to access discovery service node " + service + ": " + t, t);
       }
     });
+  }
+
+  private void updateService(NodeChildren children, final String service) {
+    final String sb = "/" + service;
+    final Multimap<String, Discoverable> newServices = HashMultimap.create(services.get());
+    newServices.removeAll(service);
+
+    // Fetch data of all children nodes in parallel.
+    List<OperationFuture<NodeData>> dataFutures = Lists.newArrayListWithCapacity(children.getChildren().size());
+    for(String child : children.getChildren()) {
+      String path = sb + "/" + child;
+      dataFutures.add(client.getData(path));
+    }
+
+    // Update the service map when all fetching are done.
+    final ListenableFuture<List<NodeData>> fetchFuture = Futures.successfulAsList(dataFutures);
+    fetchFuture.addListener(new Runnable() {
+      @Override
+      public void run() {
+        for (NodeData nodeData : Futures.getUnchecked(fetchFuture)) {
+          // For successful fetch, decode the content.
+          if (nodeData != null) {
+            Discoverable discoverable = decode(nodeData.getData());
+            if (discoverable != null) {
+              newServices.put(service, discoverable);
+            }
+          }
+        }
+        // Replace the local service register with changes.
+        services.set(newServices);
+      }
+    }, SAME_THREAD_EXECUTOR);
   }
 
   /**

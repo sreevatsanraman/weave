@@ -108,9 +108,7 @@ public abstract class AbstractServiceController implements ServiceController {
             ZKOperations.watchDeleted(zkClient, "/instances/" + runId), new Function<String, State>() {
                @Override
                public State apply(String input) {
-                 if (LOG.isDebugEnabled()) {
-                   LOG.debug("Remote service stopped: " + runId);
-                 }
+                 LOG.info("Remote service stopped: " + runId);
                  state.set(State.TERMINATED);
                  fireStateChange(new StateNode(State.TERMINATED, null));
                  return State.TERMINATED;

@@ -36,8 +36,6 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,50 +50,20 @@ public final class WeaveContainerService implements Service {
 
   private final WeaveRunnableSpecification specification;
   private final ClassLoader classLoader;
+  private final ContainerInfo containerInfo;
   private final WeaveContext context;
   private final ZKServiceDecorator serviceDelegate;
-  private final ContainerInfo containerInfo;
   private ExecutorService commandExecutor;
   private WeaveRunnable runnable;
 
-  public WeaveContainerService(String zkConnectionStr,
-                               RunId runId,
-                               WeaveRunnableSpecification specification,
-                               ClassLoader classLoader,
-                               final int instanceId,
-                               final String[] args,
-                               final String[] applicationArgs) throws UnknownHostException {
+  public WeaveContainerService(WeaveContext context, ContainerInfo containerInfo, String zkConnectionStr,
+                               RunId runId, WeaveRunnableSpecification specification, ClassLoader classLoader) {
     this.specification = specification;
     this.classLoader = classLoader;
     this.serviceDelegate = new ZKServiceDecorator(zkConnectionStr, ZK_TIMEOUT, runId,
                                                   createLiveNodeSupplier(), new ServiceDelegate());
-    this.containerInfo = new ContainerInfo();
-    this.context = new WeaveContext() {
-      @Override
-      public InetAddress getHost() {
-        return containerInfo.getHost();
-      }
-
-      @Override
-      public String[] getArguments() {
-        return args;
-      }
-
-      @Override
-      public String[] getApplicationArguments() {
-        return applicationArgs;
-      }
-
-      @Override
-      public WeaveRunnableSpecification getSpecification() {
-        return WeaveContainerService.this.specification;
-      }
-
-      @Override
-      public int getInstanceId() {
-        return instanceId;
-      }
-    };
+    this.context = context;
+    this.containerInfo = containerInfo;
   }
 
   private ListenableFuture<String> processMessage(final String messageId, final Message message) {
@@ -193,30 +161,6 @@ public final class WeaveContainerService implements Service {
     @Override
     public ListenableFuture<String> onReceived(String messageId, Message message) {
       return processMessage(messageId, message);
-    }
-  }
-
-  private static final class ContainerInfo {
-    private final String id;
-    private final InetAddress host;
-    private final int port;
-
-    private ContainerInfo() throws UnknownHostException {
-      id = System.getenv(EnvKeys.YARN_CONTAINER_ID);
-      host = InetAddress.getByName(System.getenv(EnvKeys.YARN_CONTAINER_HOST));
-      port = Integer.parseInt(System.getenv(EnvKeys.YARN_CONTAINER_PORT));
-    }
-
-    private String getId() {
-      return id;
-    }
-
-    private InetAddress getHost() {
-      return host;
-    }
-
-    private int getPort() {
-      return port;
     }
   }
 }

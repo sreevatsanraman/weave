@@ -37,15 +37,19 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -263,7 +267,7 @@ public final class ZKServiceDecorator extends AbstractService {
   }
 
   private <V extends JsonElement> byte[] encodeJson(V json) {
-    return encode(json, json.getClass());
+    return new Gson().toJson(json).getBytes(Charsets.UTF_8);
   }
 
   private String getZKPath(String path) {

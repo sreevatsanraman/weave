@@ -34,11 +34,13 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
@@ -55,6 +57,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.AMResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -75,6 +78,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -167,7 +171,20 @@ public final class ApplicationMasterService implements Service {
   }
 
   private void doStop() throws Exception {
+    Thread.currentThread().interrupted(); // This is just to clear the interrupt flag
+
+    Set<ContainerId> ids = Sets.newHashSet(runningContainers.getContainerIds());
+
     runningContainers.stopAll().get();
+
+    while (!ids.isEmpty()) {
+      AllocateResponse allocateResponse = amrmClient.allocate(0.0f);
+      for (ContainerStatus status : allocateResponse.getAMResponse().getCompletedContainersStatuses()) {
+        ids.remove(status.getContainerId());
+      }
+      TimeUnit.SECONDS.sleep(1);
+    }
+
     amrmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, null, null);
     amrmClient.stop();
   }
@@ -266,7 +283,7 @@ public final class ApplicationMasterService implements Service {
          createFile(EnvKeys.WEAVE_CONTAINER_JAR_PATH),
          createFile(EnvKeys.WEAVE_LOGBACK_PATH)),
         ImmutableMap.<String, String>builder()
-         .put(EnvKeys.WEAVE_CONTAINER_ZK, getRunnableZKConnectStr(runnableName))
+         .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr + "/" + runId)
          .put(EnvKeys.WEAVE_SPEC_PATH, System.getenv(EnvKeys.WEAVE_SPEC_PATH))
          .put(EnvKeys.WEAVE_LOGBACK_PATH, System.getenv(EnvKeys.WEAVE_LOGBACK_PATH))
          .put(EnvKeys.WEAVE_APPLICATION_ARGS, System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS))
@@ -295,10 +312,6 @@ public final class ApplicationMasterService implements Service {
    */
   private File createFile(String envKey) {
     return new File(System.getenv(envKey));
-  }
-
-  private String getRunnableZKConnectStr(String runnableName) {
-    return String.format("%s%s", zkConnectStr, getZKNamespace(runnableName));
   }
 
   private String getZKNamespace(String runnableName) {
@@ -483,6 +496,10 @@ public final class ApplicationMasterService implements Service {
         futures.add(controller.stop());
       }
       return Futures.successfulAsList(futures);
+    }
+
+    synchronized Set<ContainerId> getContainerIds() {
+      return ImmutableSet.copyOf(runningContainers.columnKeySet());
     }
   }
 }

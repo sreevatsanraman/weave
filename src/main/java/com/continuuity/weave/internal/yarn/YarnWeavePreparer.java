@@ -176,7 +176,7 @@ final class YarnWeavePreparer implements WeavePreparer {
       ));
 
       containerLaunchContext.setEnvironment(ImmutableMap.<String, String>builder()
-                                              .put(EnvKeys.WEAVE_CONTAINER_ZK, zkConnectStr)
+                                              .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr)
                                               .put(EnvKeys.WEAVE_SPEC_PATH, "weaveSpec.json")
                                               .put(EnvKeys.WEAVE_CONTAINER_JAR_PATH, "container.jar")
                                               .put(EnvKeys.WEAVE_LOGBACK_PATH, "logback-template.xml")

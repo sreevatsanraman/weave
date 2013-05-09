@@ -29,7 +29,12 @@ public class InMemoryDiscoveryService extends AbstractIdleService implements Dis
 
   @Override
   protected void shutDown() throws Exception {
-    // No-op
+    lock.lock();
+    try {
+      services.clear();
+    } finally {
+      lock.unlock();
+    }
   }
 
   @Override

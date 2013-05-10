@@ -294,12 +294,6 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
     }, Threads.SAME_THREAD_EXECUTOR);
   }
 
-  /**
-   * Discovers a <code>service</code> available
-   *
-   * @param service name of the service to be discovered.
-   * @return Live {@link Iterable} of {@link Discoverable} <code>service</code>
-   */
   @Override
   public Iterable<Discoverable> discover(final String service) {
     Preconditions.checkState(isRunning(), "Service is not running");

@@ -13,14 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.discovery;
+package com.continuuity.discovery;
 
-import com.continuuity.discovery.ZKDiscoveryService;
-import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.discovery.Discoverable;
-import com.continuuity.discovery.DiscoveryService;
-import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.weave.zk.InMemoryZKServer;
+import com.continuuity.zookeeper.Cancellable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import junit.framework.Assert;

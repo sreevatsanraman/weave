@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 /**
- *
+ * This abstract class provides default implementation of the {@link WeaveRunnable}.
  */
 public abstract class AbstractWeaveRunnable implements WeaveRunnable {
 
@@ -49,7 +49,7 @@ public abstract class AbstractWeaveRunnable implements WeaveRunnable {
 
   @Override
   public void handleCommand(Command command) throws Exception {
-    //To change body of implemented methods use File | Settings | File Templates.
+    // No-op by default. Left for children class to override.
   }
 
   protected Map<String, String> getArguments() {

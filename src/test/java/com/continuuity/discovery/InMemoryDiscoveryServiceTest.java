@@ -14,13 +14,9 @@
  *   the License.
  */
 
-package com.continuuity.internal.discovery;
+package com.continuuity.discovery;
 
-import com.continuuity.discovery.InMemoryDiscoveryService;
 import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.discovery.Discoverable;
-import com.continuuity.discovery.DiscoveryService;
-import com.continuuity.discovery.DiscoveryServiceClient;
 import com.google.common.collect.Iterables;
 import junit.framework.Assert;
 import org.junit.Test;

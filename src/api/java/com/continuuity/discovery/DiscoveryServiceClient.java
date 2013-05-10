@@ -18,8 +18,7 @@ package com.continuuity.discovery;
 import com.google.common.util.concurrent.Service;
 
 /**
- * Interface for {@link DiscoveryServiceClient} to discover services
- * registered with {@link DiscoveryService}
+ * Interface for {@link DiscoveryServiceClient} to discover services registered with {@link DiscoveryService}.
  */
 public interface DiscoveryServiceClient extends Service {
 

@@ -15,8 +15,6 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.zookeeper.Cancellable;
-
 import java.net.InetAddress;
 
 /**

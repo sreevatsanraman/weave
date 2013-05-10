@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 
 /**
- *
+ * This interface represents a local file that will be available for the container running a {@link WeaveRunnable}.
  */
 public interface LocalFile {
 

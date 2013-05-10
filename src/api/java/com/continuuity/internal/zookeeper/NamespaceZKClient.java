@@ -16,92 +16,102 @@
 package com.continuuity.internal.zookeeper;
 
 import com.continuuity.weave.internal.utils.Threads;
-import com.continuuity.zookeeper.ForwardingZKClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
 import com.continuuity.zookeeper.ZKClient;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.Executor;
 
 /**
 *
 */
-public final class NamespaceZKClient extends ForwardingZKClient {
+public final class NamespaceZKClient implements ZKClient {
 
   private final String namespace;
+  private final ZKClient delegate;
+  private final String connectString;
 
   public NamespaceZKClient(ZKClient delegate, String namespace) {
-    super(delegate);
     this.namespace = namespace;
+    this.delegate = delegate;
+    this.connectString = delegate.getConnectString() + namespace;
+  }
+
+  @Override
+  public String getConnectString() {
+    return connectString;
+  }
+
+  @Override
+  public void addConnectionWatcher(Watcher watcher) {
+    delegate.addConnectionWatcher(watcher);
   }
 
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode) {
-    return relayPath(super.create(namespace + path, data, createMode), this.<String>createFuture(path));
+    return relayPath(delegate.create(namespace + path, data, createMode), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode,
                                         boolean createParent) {
-    return relayPath(super.create(namespace + path, data, createMode, createParent), this.<String>createFuture(path));
+    return relayPath(delegate.create(namespace + path, data, createMode, createParent), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> exists(String path) {
-    return relayFuture(super.exists(namespace + path), this.<Stat>createFuture(path));
+    return relayFuture(delegate.exists(namespace + path), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> exists(String path, @Nullable Watcher watcher) {
-    return relayFuture(super.exists(namespace + path, watcher), this.<Stat>createFuture(path));
+    return relayFuture(delegate.exists(namespace + path, watcher), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeChildren> getChildren(String path) {
-    return relayFuture(super.getChildren(namespace + path), this.<NodeChildren>createFuture(path));
+    return relayFuture(delegate.getChildren(namespace + path), this.<NodeChildren>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeChildren> getChildren(String path, @Nullable Watcher watcher) {
-    return relayFuture(super.getChildren(namespace + path, watcher), this.<NodeChildren>createFuture(path));
+    return relayFuture(delegate.getChildren(namespace + path, watcher), this.<NodeChildren>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeData> getData(String path) {
-    return relayFuture(super.getData(namespace + path), this.<NodeData>createFuture(path));
+    return relayFuture(delegate.getData(namespace + path), this.<NodeData>createFuture(path));
   }
 
   @Override
   public OperationFuture<NodeData> getData(String path, @Nullable Watcher watcher) {
-    return relayFuture(super.getData(namespace + path, watcher), this.<NodeData>createFuture(path));
+    return relayFuture(delegate.getData(namespace + path, watcher), this.<NodeData>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> setData(String path, byte[] data) {
-    return relayFuture(super.setData(namespace + path, data), this.<Stat>createFuture(path));
+    return relayFuture(delegate.setData(namespace + path, data), this.<Stat>createFuture(path));
   }
 
   @Override
   public OperationFuture<Stat> setData(String dataPath, byte[] data, int version) {
-    return relayFuture(super.setData(namespace + dataPath, data, version), this.<Stat>createFuture(dataPath));
+    return relayFuture(delegate.setData(namespace + dataPath, data, version), this.<Stat>createFuture(dataPath));
   }
 
   @Override
   public OperationFuture<String> delete(String path) {
-    return relayPath(super.delete(namespace + path), this.<String>createFuture(path));
+    return relayPath(delegate.delete(namespace + path), this.<String>createFuture(path));
   }
 
   @Override
   public OperationFuture<String> delete(String deletePath, int version) {
-    return relayPath(super.delete(namespace + deletePath, version), this.<String>createFuture(deletePath));
+    return relayPath(delegate.delete(namespace + deletePath, version), this.<String>createFuture(deletePath));
   }
 
   private <V> SettableOperationFuture<V> createFuture(String path) {

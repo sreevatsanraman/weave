@@ -68,8 +68,7 @@ public class ControllerTest {
       });
       service.startAndWait();
 
-      final ZKWeaveController controller = new ZKWeaveController(zkServer.getConnectionStr(), 10000, runId,
-                                                                 ImmutableList.<LogHandler>of());
+      final ZKWeaveController controller = new ZKWeaveController(zkClientService, runId, ImmutableList.<LogHandler>of());
       controller.start();
 
       controller.sendCommand(Command.Builder.of("test").build()).get(2, TimeUnit.SECONDS);

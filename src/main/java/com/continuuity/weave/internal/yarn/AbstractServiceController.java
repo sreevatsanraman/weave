@@ -51,18 +51,18 @@ public abstract class AbstractServiceController implements ServiceController {
   private final RunId runId;
   private final AtomicReference<State> state;
   private final ListenerExecutors listenerExecutors;
-  private ZKClient zkClient;
+  private final ZKClient zkClient;
 
-  protected AbstractServiceController(RunId runId) {
+  protected AbstractServiceController(ZKClient zkClient, RunId runId) {
+    this.zkClient = zkClient;
     this.runId = runId;
     this.state = new AtomicReference<State>();
     listenerExecutors = new ListenerExecutors();
   }
 
-  protected void doStart(ZKClient zkClient) {
-    this.zkClient = zkClient;
+  protected void start() {
     // Watch for state changes
-    ZKOperations.watchData(this.zkClient, getZKPath("state"), new ZKOperations.DataCallback() {
+    ZKOperations.watchData(zkClient, getZKPath("state"), new ZKOperations.DataCallback() {
       @Override
       public void updated(NodeData nodeData) {
         StateNode stateNode = decode(nodeData);

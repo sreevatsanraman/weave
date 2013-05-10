@@ -85,6 +85,11 @@ public final class DefaultZKClientService implements ZKClientService {
   }
 
   @Override
+  public String getConnectString() {
+    return zkStr;
+  }
+
+  @Override
   public void addConnectionWatcher(Watcher watcher) {
     if (watcher != null) {
       connectionWatchers.add(wrapWatcher(watcher));
@@ -141,7 +146,8 @@ public final class DefaultZKClientService implements ZKClientService {
           @Override
           public void onSuccess(String parentPath) {
             // Create the requested path again
-            Futures.addCallback(doCreate(path, data, createMode, false, ignoreNodeExists), new FutureCallback<String>() {
+            Futures.addCallback(
+              doCreate(path, data, createMode, false, ignoreNodeExists), new FutureCallback<String>() {
               @Override
               public void onSuccess(String pathResult) {
                 result.set(pathResult);
@@ -420,11 +426,11 @@ public final class DefaultZKClientService implements ZKClientService {
    * Collection of generic callbacks that simply reflect results into OperationFuture.
    */
   private static final class Callbacks {
-    static AsyncCallback.StringCallback STRING = new AsyncCallback.StringCallback() {
+    static final AsyncCallback.StringCallback STRING = new AsyncCallback.StringCallback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, String name) {
-        SettableOperationFuture<String> result = (SettableOperationFuture<String>)ctx;
+        SettableOperationFuture<String> result = (SettableOperationFuture<String>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK) {
           result.set((name == null || name.isEmpty()) ? path : name);
@@ -434,11 +440,11 @@ public final class DefaultZKClientService implements ZKClientService {
       }
     };
 
-    static AsyncCallback.StatCallback STAT = new AsyncCallback.StatCallback() {
+    static final AsyncCallback.StatCallback STAT = new AsyncCallback.StatCallback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, Stat stat) {
-        SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>)ctx;
+        SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK) {
           result.set(stat);
@@ -451,11 +457,11 @@ public final class DefaultZKClientService implements ZKClientService {
     /**
      * A stat callback that treats NONODE as success.
      */
-    static AsyncCallback.StatCallback STAT_NONODE = new AsyncCallback.StatCallback() {
+    static final AsyncCallback.StatCallback STAT_NONODE = new AsyncCallback.StatCallback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, Stat stat) {
-        SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>)ctx;
+        SettableOperationFuture<Stat> result = (SettableOperationFuture<Stat>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK || code == KeeperException.Code.NONODE) {
           result.set(stat);
@@ -465,11 +471,11 @@ public final class DefaultZKClientService implements ZKClientService {
       }
     };
 
-    static AsyncCallback.Children2Callback CHILDREN = new AsyncCallback.Children2Callback() {
+    static final AsyncCallback.Children2Callback CHILDREN = new AsyncCallback.Children2Callback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, List<String> children, Stat stat) {
-        SettableOperationFuture<NodeChildren> result = (SettableOperationFuture<NodeChildren>)ctx;
+        SettableOperationFuture<NodeChildren> result = (SettableOperationFuture<NodeChildren>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK) {
           result.set(new BasicNodeChildren(children, stat));
@@ -479,11 +485,11 @@ public final class DefaultZKClientService implements ZKClientService {
       }
     };
 
-    static AsyncCallback.DataCallback DATA = new AsyncCallback.DataCallback() {
+    static final AsyncCallback.DataCallback DATA = new AsyncCallback.DataCallback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
-        SettableOperationFuture<NodeData> result = (SettableOperationFuture<NodeData>)ctx;
+        SettableOperationFuture<NodeData> result = (SettableOperationFuture<NodeData>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK) {
           result.set(new BasicNodeData(data, stat));
@@ -493,11 +499,11 @@ public final class DefaultZKClientService implements ZKClientService {
       }
     };
 
-    static AsyncCallback.VoidCallback VOID = new AsyncCallback.VoidCallback() {
+    static final AsyncCallback.VoidCallback VOID = new AsyncCallback.VoidCallback() {
       @Override
       @SuppressWarnings("unchecked")
       public void processResult(int rc, String path, Object ctx) {
-        SettableOperationFuture<String> result = (SettableOperationFuture<String>)ctx;
+        SettableOperationFuture<String> result = (SettableOperationFuture<String>) ctx;
         KeeperException.Code code = KeeperException.Code.get(rc);
         if (code == KeeperException.Code.OK) {
           result.set(result.getRequestPath());

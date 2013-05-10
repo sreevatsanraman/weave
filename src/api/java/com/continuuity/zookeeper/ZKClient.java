@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
  */
 public interface ZKClient {
 
+  String getConnectString();
+
   /**
    * Adds a {@link Watcher} that will be called whenever connection state change.
    * @param watcher The watcher to set.

@@ -83,9 +83,7 @@ final class WeaveContainerLauncher {
       .noOutput().noError()
       .launch();
 
-    ContainerServiceController controller = new ContainerServiceController(runId);
-    controller.doStart(zkClient);
-    return controller;
+    return new AbstractServiceController(zkClient, runId){};
   }
 
   private LocalResource setLocalResourceType(LocalFile localFile, LocalResource localResource) {
@@ -100,17 +98,5 @@ final class WeaveContainerLauncher {
       localResource.setType(LocalResourceType.FILE);
     }
     return localResource;
-  }
-
-  private static final class ContainerServiceController extends AbstractServiceController {
-
-    protected ContainerServiceController(RunId runId) {
-      super(runId);
-    }
-
-    @Override
-    public void doStart(ZKClient zkClient) {
-      super.doStart(zkClient);
-    }
   }
 }

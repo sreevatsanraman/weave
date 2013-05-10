@@ -140,7 +140,7 @@ final class RewatchOnExpireWatcher implements Watcher {
           return;
         }
 
-        NodeChildren oldNodeChildren = (NodeChildren)oldResult;
+        NodeChildren oldNodeChildren = (NodeChildren) oldResult;
         if (!result.getChildren().equals(oldNodeChildren.getChildren())) {
           process(new WatchedEvent(Event.EventType.NodeChildrenChanged, Event.KeeperState.SyncConnected, path));
         } else {

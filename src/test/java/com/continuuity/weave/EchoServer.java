@@ -14,7 +14,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -34,7 +33,7 @@ public final class EchoServer extends AbstractWeaveRunnable {
     try {
       serverSocket = new ServerSocket(0);
       LOG.info("EchoServer started: " + serverSocket.getLocalSocketAddress() + ", id: " + context.getInstanceId());
-      context.registerService("echo", serverSocket.getLocalPort());
+      context.announce("echo", serverSocket.getLocalPort());
     } catch (IOException e) {
       throw Throwables.propagate(e);
     }

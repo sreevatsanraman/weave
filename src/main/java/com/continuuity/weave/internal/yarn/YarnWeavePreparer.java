@@ -27,6 +27,8 @@ import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaAppender;
 import com.continuuity.weave.internal.utils.YarnUtils;
+import com.continuuity.zookeeper.ZKClient;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -68,7 +70,7 @@ final class YarnWeavePreparer implements WeavePreparer {
 
   private final WeaveSpecification weaveSpec;
   private final YarnClient yarnClient;
-  private final String zkConnectStr;
+  private final ZKClient zkClient;
 
   private final List<Closeable> resourceCleaner = Lists.newArrayList();
   private final List<LogHandler> logHandlers = Lists.newArrayList();
@@ -78,10 +80,10 @@ final class YarnWeavePreparer implements WeavePreparer {
   private final ListMultimap<String, String> runnableArgs = ArrayListMultimap.create();
 
 
-  YarnWeavePreparer(WeaveSpecification weaveSpec, YarnClient yarnClient, String zkConnectStr) {
+  YarnWeavePreparer(WeaveSpecification weaveSpec, YarnClient yarnClient, ZKClient zkClient) {
     this.weaveSpec = weaveSpec;
     this.yarnClient = yarnClient;
-    this.zkConnectStr = zkConnectStr;
+    this.zkClient = ZKClients.namespace(zkClient, "/" + weaveSpec.getName());
   }
 
   @Override
@@ -176,7 +178,7 @@ final class YarnWeavePreparer implements WeavePreparer {
       ));
 
       containerLaunchContext.setEnvironment(ImmutableMap.<String, String>builder()
-                                              .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr)
+                                              .put(EnvKeys.WEAVE_ZK_CONNECT, zkClient.getConnectString())
                                               .put(EnvKeys.WEAVE_SPEC_PATH, "weaveSpec.json")
                                               .put(EnvKeys.WEAVE_CONTAINER_JAR_PATH, "container.jar")
                                               .put(EnvKeys.WEAVE_LOGBACK_PATH, "logback-template.xml")
@@ -200,7 +202,7 @@ final class YarnWeavePreparer implements WeavePreparer {
   }
 
   private WeaveController createController(RunId runId, Iterable<LogHandler> logHandlers) {
-    ZKWeaveController controller = new ZKWeaveController(zkConnectStr, 10000, runId, logHandlers);
+    ZKWeaveController controller = new ZKWeaveController(zkClient, runId, logHandlers);
     controller.start();
     return controller;
   }

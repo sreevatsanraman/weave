@@ -22,7 +22,7 @@ import java.net.InetAddress;
 /**
  * Represents runtime context of a {@link WeaveRunnable}.
  */
-public interface WeaveContext {
+public interface WeaveContext extends ServiceAnnouncer {
 
   /**
    * Returns the hostname that the runnable is running on.
@@ -48,11 +48,4 @@ public interface WeaveContext {
    * Returns an integer id from 0 to (instanceCount - 1).
    */
   int getInstanceId();
-
-  /**
-   * Registers an endpoint that could be discovered by external party.
-   * @param serviceName Name of the endpoint
-   * @param port Port of the endpoint.
-   */
-  Cancellable registerService(String serviceName, int port);
 }

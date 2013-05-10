@@ -29,9 +29,7 @@ import com.continuuity.weave.internal.utils.Services;
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.Discoverable;
 import com.continuuity.zookeeper.DiscoveryServiceClient;
-import com.continuuity.zookeeper.RetryStrategies;
-import com.continuuity.zookeeper.ZKClientService;
-import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
@@ -49,7 +47,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -59,21 +56,13 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
   private static final Logger LOG = LoggerFactory.getLogger(ZKWeaveController.class);
   private static final String LOG_TOPIC = "log";
 
-  private final ZKClientService zkClient;
   private final Queue<LogHandler> logHandlers;
   private final KafkaClient kafkaClient;
   private final DiscoveryServiceClient discoveryServiceClient;
   private final Thread logPoller;
 
-  ZKWeaveController(String zkConnect, int zkTimeout, RunId runId, Iterable<LogHandler> logHandlers) {
-    super(runId);
-    // Creates a retry on failure zk client
-    this.zkClient = ZKClientServices.delegate(
-                      ZKClients.reWatchOnExpire(
-                        ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnect)
-                                                                .setSessionTimeout(zkTimeout)
-                                                                .build(),
-                                                 RetryStrategies.exponentialDelay(100, 2000, TimeUnit.MILLISECONDS))));
+  ZKWeaveController(ZKClient zkClient, RunId runId, Iterable<LogHandler> logHandlers) {
+    super(zkClient, runId);
     this.logHandlers = new ConcurrentLinkedQueue<LogHandler>();
     Iterables.addAll(this.logHandlers, logHandlers);
     this.kafkaClient = new SimpleKafkaClient(ZKClients.namespace(zkClient, "/" + runId + "/kafka"));
@@ -81,10 +70,11 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
     this.logPoller = createLogPoller();
   }
 
-  void start() {
-    Futures.getUnchecked(Services.chainStart(zkClient, kafkaClient, discoveryServiceClient));
+  @Override
+  protected void start() {
+    Futures.getUnchecked(Services.chainStart(kafkaClient, discoveryServiceClient));
     logPoller.start();
-    super.doStart(zkClient);
+    super.start();
   }
 
   @Override
@@ -100,7 +90,7 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
         } catch (InterruptedException e) {
           LOG.warn("Joining of log poller thread interrupted.", e);
         }
-        Futures.addCallback(Services.chainStop(discoveryServiceClient, kafkaClient, zkClient),
+        Futures.addCallback(Services.chainStop(discoveryServiceClient, kafkaClient),
                             new FutureCallback<List<ListenableFuture<Service.State>>>() {
           @Override
           public void onSuccess(List<ListenableFuture<Service.State>> states) {

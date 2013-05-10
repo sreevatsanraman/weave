@@ -73,7 +73,7 @@ final class BasicWeaveContext implements WeaveContext {
   }
 
   @Override
-  public Cancellable registerService(final String serviceName, final int port) {
+  public Cancellable announce(final String serviceName, final int port) {
     return discoveryService.register(new Discoverable() {
       @Override
       public String getName() {

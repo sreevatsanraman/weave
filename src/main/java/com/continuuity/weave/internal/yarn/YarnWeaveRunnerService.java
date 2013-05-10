@@ -31,6 +31,10 @@ import com.continuuity.weave.internal.DefaultLocalFile;
 import com.continuuity.weave.internal.DefaultWeaveRunnableSpecification;
 import com.continuuity.weave.internal.DefaultWeaveSpecification;
 import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
+import com.continuuity.zookeeper.RetryStrategies;
+import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,11 +43,14 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import org.apache.hadoop.yarn.client.YarnClient;
 import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -51,16 +58,21 @@ import java.util.Map;
 public final class YarnWeaveRunnerService extends AbstractIdleService implements WeaveRunnerService {
 
   private static final String KAFKA_ARCHIVE = "kafka-0.7.2.tgz";
+  private static final int ZK_TIMEOUT = 10000;
 
   private final YarnClient yarnClient;
-  private final String zkConnectStr;
+  private final ZKClientService zkClientService;
 
-  public YarnWeaveRunnerService(YarnConfiguration config, String zkConnectStr) {
+  public YarnWeaveRunnerService(YarnConfiguration config, String zkConnect) {
     YarnClient client = new YarnClientImpl();
     client.init(config);
 
     this.yarnClient = client;
-    this.zkConnectStr = zkConnectStr;
+    this.zkClientService = ZKClientServices.delegate(
+                            ZKClients.reWatchOnExpire(
+                              ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnect)
+                                     .setSessionTimeout(ZK_TIMEOUT)
+                                     .build(), RetryStrategies.exponentialDelay(100, 2000, TimeUnit.MILLISECONDS))));
   }
 
   @Override
@@ -75,22 +87,34 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
 
   @Override
   public WeavePreparer prepare(WeaveApplication application) {
-    return new YarnWeavePreparer(addKafka(application.configure()), yarnClient, zkConnectStr);
+    return new YarnWeavePreparer(addKafka(application.configure()), yarnClient, zkClientService);
   }
 
   @Override
   public WeaveController lookup(RunId runId) {
     // TODO: Check if the runId presences in ZK.
-    return new ZKWeaveController(zkConnectStr, 10000, runId, ImmutableList.<LogHandler>of());
+    return new ZKWeaveController(zkClientService, runId, ImmutableList.<LogHandler>of());
   }
 
   @Override
   protected void startUp() throws Exception {
     yarnClient.start();
+    zkClientService.startAndWait();
+    try {
+      // Create the root node, so that the namespace root would get created it is missing
+      zkClientService.create("/", null, CreateMode.PERSISTENT).get();
+    } catch (Exception e) {
+      // If the exception is caused by node exists, then it's ok. Otherwise propagate the exception.
+      Throwable cause = e.getCause();
+      if (!(cause instanceof KeeperException) || ((KeeperException) cause).code() != KeeperException.Code.NODEEXISTS) {
+        throw Throwables.propagate(e);
+      }
+    }
   }
 
   @Override
   protected void shutDown() throws Exception {
+    zkClientService.stopAndWait();
     yarnClient.stop();
   }
 

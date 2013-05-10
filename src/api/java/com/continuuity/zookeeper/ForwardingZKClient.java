@@ -37,6 +37,11 @@ public abstract class ForwardingZKClient implements ZKClient {
   }
 
   @Override
+  public String getConnectString() {
+    return delegate.getConnectString();
+  }
+
+  @Override
   public void addConnectionWatcher(Watcher watcher) {
     delegate.addConnectionWatcher(watcher);
   }

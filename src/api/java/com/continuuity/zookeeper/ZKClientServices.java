@@ -59,6 +59,17 @@ public final class ZKClientServices {
    */
   public static ZKClientService delegate(final ZKClient client, ZKClientService clientService) {
     return new ForwardingZKClientService(clientService) {
+
+      @Override
+      public String getConnectString() {
+        return client.getConnectString();
+      }
+
+      @Override
+      public void addConnectionWatcher(Watcher watcher) {
+        client.addConnectionWatcher(watcher);
+      }
+
       public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode) {
         return client.create(path, data, createMode);
       }

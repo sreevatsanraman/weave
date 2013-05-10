@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.continuuity.internal.discovery.ZKDiscoveryService;
+import com.continuuity.discovery.ZKDiscoveryService;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnableSpecification;

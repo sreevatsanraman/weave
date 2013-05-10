@@ -13,9 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.discovery;
-
-import com.continuuity.discovery.Discoverable;
+package com.continuuity.discovery;
 
 import java.net.InetSocketAddress;
 

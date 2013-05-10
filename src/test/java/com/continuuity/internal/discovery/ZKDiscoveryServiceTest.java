@@ -15,6 +15,7 @@
  */
 package com.continuuity.internal.discovery;
 
+import com.continuuity.discovery.ZKDiscoveryService;
 import com.continuuity.zookeeper.Cancellable;
 import com.continuuity.discovery.Discoverable;
 import com.continuuity.discovery.DiscoveryService;

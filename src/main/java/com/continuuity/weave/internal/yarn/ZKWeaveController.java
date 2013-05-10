@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.internal.yarn;
 
-import com.continuuity.internal.discovery.ZKDiscoveryService;
+import com.continuuity.discovery.ZKDiscoveryService;
 import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.FetchedMessage;
 import com.continuuity.kafka.client.KafkaClient;

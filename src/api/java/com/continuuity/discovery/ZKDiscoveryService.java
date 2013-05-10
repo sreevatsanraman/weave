@@ -13,13 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.internal.discovery;
+package com.continuuity.discovery;
 
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.discovery.Discoverable;
-import com.continuuity.discovery.DiscoveryService;
-import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
@@ -272,7 +269,7 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
 
     // Fetch data of all children nodes in parallel.
     List<OperationFuture<NodeData>> dataFutures = Lists.newArrayListWithCapacity(children.getChildren().size());
-    for(String child : children.getChildren()) {
+    for (String child : children.getChildren()) {
       String path = sb + "/" + child;
       dataFutures.add(zkClient.getData(path));
     }
@@ -349,8 +346,7 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
    * SerDe for converting a {@link DiscoverableWrapper} into a JSON object
    * or from a JSON object into {@link DiscoverableWrapper}.
    */
-  private static final class DiscoverableCodec
-    implements JsonSerializer<Discoverable>, JsonDeserializer<Discoverable> {
+  private static final class DiscoverableCodec implements JsonSerializer<Discoverable>, JsonDeserializer<Discoverable> {
 
     @Override
     public Discoverable deserialize(JsonElement json, Type typeOfT,

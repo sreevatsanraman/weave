@@ -17,9 +17,9 @@ package com.continuuity.internal.discovery;
 
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.zookeeper.Discoverable;
-import com.continuuity.zookeeper.DiscoveryService;
-import com.continuuity.zookeeper.DiscoveryServiceClient;
+import com.continuuity.discovery.Discoverable;
+import com.continuuity.discovery.DiscoveryService;
+import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;

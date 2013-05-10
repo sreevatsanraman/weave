@@ -16,9 +16,9 @@
 package com.continuuity.internal.discovery;
 
 import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.zookeeper.Discoverable;
-import com.continuuity.zookeeper.DiscoveryService;
-import com.continuuity.zookeeper.DiscoveryServiceClient;
+import com.continuuity.discovery.Discoverable;
+import com.continuuity.discovery.DiscoveryService;
+import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.weave.zk.InMemoryZKServer;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;

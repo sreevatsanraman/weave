@@ -16,7 +16,7 @@
 package com.continuuity.weave.api;
 
 import com.continuuity.weave.api.logging.LogHandler;
-import com.continuuity.zookeeper.Discoverable;
+import com.continuuity.discovery.Discoverable;
 
 /**
  * For controller a running application.

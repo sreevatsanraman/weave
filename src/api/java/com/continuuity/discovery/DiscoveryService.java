@@ -13,23 +13,21 @@
  *   License for the specific language governing permissions and limitations under
  *   the License.
  */
+package com.continuuity.discovery;
 
-package com.continuuity.zookeeper;
-
-import java.net.InetSocketAddress;
+import com.continuuity.zookeeper.Cancellable;
+import com.google.common.util.concurrent.Service;
 
 /**
- * Discoverable defines the attributes of service to be discovered.
+ * DiscoveryService defines interface for registering {@link Discoverable}
  */
-public interface Discoverable {
+public interface DiscoveryService extends Service {
 
   /**
-   * @return Name of the service
+   * Registers a {@link Discoverable} service.
+   * @param discoverable Information of the service provider that could be discovered.
+   * @return A {@link com.continuuity.zookeeper.Cancellable} for un-registration.
    */
-  String getName();
-
-  /**
-   * @return An {@link InetSocketAddress} representing the host+port of the service.
-   */
-  InetSocketAddress getSocketAddress();
+  Cancellable register(Discoverable discoverable);
 }
+

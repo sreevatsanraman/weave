@@ -15,7 +15,7 @@
  */
 package com.continuuity.internal.discovery;
 
-import com.continuuity.zookeeper.Discoverable;
+import com.continuuity.discovery.Discoverable;
 
 import java.net.InetSocketAddress;
 

@@ -18,8 +18,8 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.continuuity.zookeeper.Cancellable;
-import com.continuuity.zookeeper.Discoverable;
-import com.continuuity.zookeeper.DiscoveryService;
+import com.continuuity.discovery.Discoverable;
+import com.continuuity.discovery.DiscoveryService;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

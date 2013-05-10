@@ -24,7 +24,7 @@ import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.utils.Services;
-import com.continuuity.zookeeper.DiscoveryService;
+import com.continuuity.discovery.DiscoveryService;
 import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClientService;

@@ -46,11 +46,7 @@ public class EchoServerTest {
 
   @Test
   public void testEchoServer() throws InterruptedException, ExecutionException, IOException {
-    WeaveRunnerService weaveRunner = new YarnWeaveRunnerService(new YarnConfiguration(),
-                                                                zkServer.getConnectionStr() + "/weave");
-    weaveRunner.startAndWait();
-
-    WeaveController controller = weaveRunner.prepare(new EchoServer(),
+    WeaveController controller = runnerService.prepare(new EchoServer(),
                                                      ResourceSpecification.Builder.with()
                                                        .setCores(1)
                                                        .setMemory(1, ResourceSpecification.SizeUnit.GIGA)
@@ -116,7 +112,7 @@ public class EchoServerTest {
     cluster.init(config);
     cluster.start();
 
-    runnerService = new YarnWeaveRunnerService(new YarnConfiguration(), zkServer.getConnectionStr());
+    runnerService = new YarnWeaveRunnerService(new YarnConfiguration(), zkServer.getConnectionStr() + "/weave");
     runnerService.startAndWait();
   }
 

@@ -74,7 +74,7 @@ public final class DefaultZKClientService implements ZKClientService {
 
     this.zooKeeper = new AtomicReference<ZooKeeper>();
 
-    // TODO: Add ACL
+    // TODO (terence): Add ACL
     aclMapper = new Function<String, List<ACL>>() {
       @Override
       public List<ACL> apply(String input) {

@@ -66,7 +66,7 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
     this.logHandlers = new ConcurrentLinkedQueue<LogHandler>();
     Iterables.addAll(this.logHandlers, logHandlers);
     this.kafkaClient = new SimpleKafkaClient(ZKClients.namespace(zkClient, "/" + runId + "/kafka"));
-    this.discoveryServiceClient = new ZKDiscoveryService(ZKClients.namespace(zkClient, "/" + runId));
+    this.discoveryServiceClient = new ZKDiscoveryService(zkClient);
     this.logPoller = createLogPoller();
   }
 

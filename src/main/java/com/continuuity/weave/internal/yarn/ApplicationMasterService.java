@@ -91,7 +91,6 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ApplicationMasterService implements Service {
 
-  private static final int ZK_TIMEOUT = 10000;    // 10 seconds
   private static final Logger LOG = LoggerFactory.getLogger(ApplicationMasterService.class);
 
   private final RunId runId;
@@ -292,7 +291,8 @@ public final class ApplicationMasterService implements Service {
          createFile(EnvKeys.WEAVE_CONTAINER_JAR_PATH),
          createFile(EnvKeys.WEAVE_LOGBACK_PATH)),
         ImmutableMap.<String, String>builder()
-         .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr + "/" + runId)
+         .put(EnvKeys.WEAVE_APP_RUN_ID, runId.getId())
+         .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr)
          .put(EnvKeys.WEAVE_SPEC_PATH, System.getenv(EnvKeys.WEAVE_SPEC_PATH))
          .put(EnvKeys.WEAVE_LOGBACK_PATH, System.getenv(EnvKeys.WEAVE_LOGBACK_PATH))
          .put(EnvKeys.WEAVE_APPLICATION_ARGS, System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS))

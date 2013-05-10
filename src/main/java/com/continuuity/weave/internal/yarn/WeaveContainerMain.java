@@ -57,6 +57,7 @@ public final class WeaveContainerMain extends ServiceMain {
   public static void main(final String[] args) throws Exception {
     String zkConnectStr = System.getenv(EnvKeys.WEAVE_ZK_CONNECT);
     File weaveSpecFile = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
+    RunId appRunId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_APP_RUN_ID));
     RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
     String runnableName = System.getenv(EnvKeys.WEAVE_RUNNABLE_NAME);
     int instanceId = Integer.parseInt(System.getenv(EnvKeys.WEAVE_INSTANCE_ID));
@@ -75,13 +76,14 @@ public final class WeaveContainerMain extends ServiceMain {
                                                   decodeArgs(System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS)),
                                                   runnableSpec, instanceId, discoveryService);
     new WeaveContainerMain().doMain(
-      wrapService(new WeaveContainerService(context, containerInfo, getContainerZKClient(zkClientService, runnableName),
+      wrapService(new WeaveContainerService(context, containerInfo,
+                                            getContainerZKClient(zkClientService, appRunId, runnableName),
                                             runId, runnableSpec, ClassLoader.getSystemClassLoader()),
                   discoveryService, zkClientService));
   }
 
-  private static ZKClient getContainerZKClient(ZKClient zkClient, String runnableName) {
-    return ZKClients.namespace(zkClient, "/runnables/" + runnableName);
+  private static ZKClient getContainerZKClient(ZKClient zkClient, RunId appRunId, String runnableName) {
+    return ZKClients.namespace(zkClient, String.format("/%s/runnables/%s", appRunId, runnableName));
   }
 
   private static WeaveSpecification loadWeaveSpec(File specFile) throws IOException {

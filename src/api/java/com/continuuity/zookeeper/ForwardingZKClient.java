@@ -48,7 +48,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode) {
-    return delegate.create(path, data, createMode);
+    return create(path, data, createMode, true);
   }
 
   @Override
@@ -59,7 +59,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<Stat> exists(String path) {
-    return delegate.exists(path);
+    return exists(path, null);
   }
 
   @Override
@@ -69,7 +69,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<NodeChildren> getChildren(String path) {
-    return delegate.getChildren(path);
+    return getChildren(path, null);
   }
 
   @Override
@@ -79,7 +79,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<NodeData> getData(String path) {
-    return delegate.getData(path);
+    return getData(path, null);
   }
 
   @Override
@@ -89,7 +89,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<Stat> setData(String path, byte[] data) {
-    return delegate.setData(path, data);
+    return setData(path, data, -1);
   }
 
   @Override
@@ -99,7 +99,7 @@ public abstract class ForwardingZKClient implements ZKClient {
 
   @Override
   public OperationFuture<String> delete(String path) {
-    return delegate.delete(path);
+    return delete(path, -1);
   }
 
   @Override

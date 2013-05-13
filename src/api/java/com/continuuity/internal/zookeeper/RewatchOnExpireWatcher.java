@@ -65,7 +65,7 @@ final class RewatchOnExpireWatcher implements Watcher {
 
   @Override
   public void process(WatchedEvent event) {
-    if (event.getType() != Event.EventType.None) {
+    if (delegate != null && event.getType() != Event.EventType.None) {
       try {
         delegate.process(event);
       } catch (Throwable t) {

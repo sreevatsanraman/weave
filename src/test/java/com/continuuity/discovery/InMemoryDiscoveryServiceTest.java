@@ -45,26 +45,21 @@ public class InMemoryDiscoveryServiceTest {
   @Test
   public void simpleDiscoverable() throws Exception {
     DiscoveryService discoveryService = new InMemoryDiscoveryService();
-    discoveryService.startAndWait();
     DiscoveryServiceClient discoveryServiceClient = (DiscoveryServiceClient)discoveryService;
-    try {
-      // Register one service running on one host:port
-      Cancellable cancellable = register(discoveryService, "foo", "localhost", 8090);
-      Iterable<Discoverable> discoverables = discoveryServiceClient.discover("foo");
 
-      // Discover that registered host:port.
-      Assert.assertTrue(Iterables.size(discoverables) == 1);
+    // Register one service running on one host:port
+    Cancellable cancellable = register(discoveryService, "foo", "localhost", 8090);
+    Iterable<Discoverable> discoverables = discoveryServiceClient.discover("foo");
 
-      // Remove the service
-      cancellable.cancel();
+    // Discover that registered host:port.
+    Assert.assertTrue(Iterables.size(discoverables) == 1);
 
-      // There should be no service.
-      discoverables = discoveryServiceClient.discover("foo");
-      TimeUnit.MILLISECONDS.sleep(100);
-      Assert.assertTrue(Iterables.size(discoverables) == 0);
-    } finally {
-      discoveryService.stopAndWait();
-      discoveryServiceClient.stopAndWait();
-    }
+    // Remove the service
+    cancellable.cancel();
+
+    // There should be no service.
+    discoverables = discoveryServiceClient.discover("foo");
+    TimeUnit.MILLISECONDS.sleep(100);
+    Assert.assertTrue(Iterables.size(discoverables) == 0);
   }
 }

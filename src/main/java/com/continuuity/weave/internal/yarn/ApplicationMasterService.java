@@ -78,6 +78,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -181,9 +182,11 @@ public final class ApplicationMasterService implements Service {
   private void doStop() throws Exception {
     Thread.currentThread().interrupted(); // This is just to clear the interrupt flag
 
+    LOG.info("Stop application master with spec: " + WeaveSpecificationAdapter.create().toJson(weaveSpec));
+
     Set<ContainerId> ids = Sets.newHashSet(runningContainers.getContainerIds());
 
-    runningContainers.stopAll().get();
+    runningContainers.stopAll();
 
     while (!ids.isEmpty()) {
       AllocateResponse allocateResponse = amrmClient.allocate(0.0f);
@@ -495,26 +498,42 @@ public final class ApplicationMasterService implements Service {
 
   private static final class RunningContainers {
     private final Table<String, ContainerId, ServiceController> runningContainers;
+    private final Deque<String> startSequence;
 
     RunningContainers() {
       runningContainers = HashBasedTable.create();
+      startSequence = Lists.newLinkedList();
     }
 
     synchronized void add(String runnableName, Container container, ServiceController controller) {
       runningContainers.put(runnableName, container.getId(), controller);
+      if (startSequence.isEmpty() || !runnableName.equals(startSequence.peekLast())) {
+        startSequence.addLast(runnableName);
+      }
     }
 
     synchronized int count(String runnableName) {
       return runningContainers.row(runnableName).size();
     }
 
-    synchronized ListenableFuture<List<ServiceController.State>> stopAll() {
-      // TODO: Order the stop sequence in reverse of the start sequence
+    synchronized void stopAll() {
+      // Stop it one by one in reverse order of start sequence
+      Iterator<String> itor = startSequence.descendingIterator();
       List<ListenableFuture<ServiceController.State>> futures = Lists.newLinkedList();
-      for (ServiceController controller : runningContainers.values()) {
-        futures.add(controller.stop());
+      while (itor.hasNext()) {
+        String runnableName = itor.next();
+        LOG.info("Stopping all instances of " + runnableName);
+
+        futures.clear();
+        // Parallel stops all running containers of the current runnable.
+        for (ServiceController controller : runningContainers.row(runnableName).values()) {
+          futures.add(controller.stop());
+        }
+        // Wait for containers to stop. Assuming the future returned by Futures.successfulAsList won't throw exception.
+        Futures.getUnchecked(Futures.successfulAsList(futures));
+
+        LOG.info("Terminated all instances of " + runnableName);
       }
-      return Futures.successfulAsList(futures);
     }
 
     synchronized Set<ContainerId> getContainerIds() {

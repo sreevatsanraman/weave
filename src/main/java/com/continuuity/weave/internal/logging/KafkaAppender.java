@@ -34,11 +34,13 @@ import com.continuuity.zookeeper.ZKClientService;
 import com.continuuity.zookeeper.ZKClientServices;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.stream.JsonWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +77,7 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
   private String topic;
   private Queue<String> buffer;
   private int flushLimit = 20;
-  private int flushPeriod = 500;
+  private int flushPeriod = 100;
   private ScheduledExecutorService scheduler;
 
   public KafkaAppender() {
@@ -158,9 +160,17 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
 
   @Override
   public void stop() {
-    scheduler.shutdownNow();
-    Futures.getUnchecked(Services.chainStop(kafkaClient, zkClientService));
     super.stop();
+    scheduler.shutdownNow();
+    // Flush the log one more time.
+    // TODO (terence): Need to move kafka server into AppMaster to resolve this issue.
+//    try {
+//      publishLogs().get(2, TimeUnit.SECONDS);
+//    } catch (Exception e) {
+//      LOG.error("Failed to publish last batch of log.", e);
+//    } finally {
+//      Futures.getUnchecked(Services.chainStop(kafkaClient, zkClientService));
+//    }
   }
 
   @Override
@@ -172,6 +182,33 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
     }
   }
 
+  private ListenableFuture<Integer> publishLogs() {
+    // If the publisher is not available, simply returns a completed future.
+    PreparePublish publisher = KafkaAppender.this.publisher.get();
+    if (publisher == null) {
+      return Futures.immediateFuture(0);
+    }
+
+    int count = 0;
+    for (String json : Iterables.consumingIterable(buffer)) {
+      publisher.add(Charsets.UTF_8.encode(json), 0);
+      count++;
+    }
+    // Nothing to publish, simply returns a completed future.
+    if (count == 0) {
+      return Futures.immediateFuture(0);
+    }
+
+    bufferedSize.set(0);
+    final int finalCount = count;
+    return Futures.transform(publisher.publish(), new Function<Object, Integer>() {
+      @Override
+      public Integer apply(Object input) {
+        return finalCount;
+      }
+    });
+  }
+
   /**
    * Creates a {@link Runnable} that writes all logs in the buffer into kafka
    * @return The Runnable task
@@ -180,27 +217,11 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
     return new Runnable() {
       @Override
       public void run() {
-        // If the publisher is not available, simply return.
-        PreparePublish publisher = KafkaAppender.this.publisher.get();
-        if (publisher == null) {
-          return;
-        }
-
-        int count = 0;
-        for (String json : Iterables.consumingIterable(buffer)) {
-          publisher.add(Charsets.UTF_8.encode(json), 0);
-          count++;
-        }
-        if (count == 0) {
-          return;
-        }
-        bufferedSize.set(0);
-        final int finalCount = count;
-        Futures.addCallback(publisher.publish(), new FutureCallback<Object>() {
+        Futures.addCallback(publishLogs(), new FutureCallback<Integer>() {
           @Override
-          public void onSuccess(Object result) {
+          public void onSuccess(Integer result) {
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Log entries published, size=" + finalCount);
+              LOG.debug("Log entries published, size=" + result);
             }
           }
 

@@ -79,18 +79,6 @@ public final class ZKServiceDecorator extends AbstractService {
     }
   }
 
-
-//  /**
-//   * Returns the {@link ZKClient} used by this decorator.
-//   * @return
-//   *
-//   * TODO: This method is a bit hacky. Need to find a better way to share a ZK connection between different components.
-//   */
-//  public ZKClient getZKClient() {
-//    return new ForwardingZKClient(zkClient) {
-//    };
-//  }
-
   @Override
   protected void doStart() {
     callbackExecutor = Executors.newSingleThreadExecutor(Threads.createDaemonThreadFactory("message-callback"));

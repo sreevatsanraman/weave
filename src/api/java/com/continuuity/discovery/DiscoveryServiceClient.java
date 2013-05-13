@@ -15,12 +15,10 @@
  */
 package com.continuuity.discovery;
 
-import com.google.common.util.concurrent.Service;
-
 /**
  * Interface for {@link DiscoveryServiceClient} to discover services registered with {@link DiscoveryService}.
  */
-public interface DiscoveryServiceClient extends Service {
+public interface DiscoveryServiceClient {
 
   /**
    * Retrieves a list of {@link Discoverable} for the a service with the given name.

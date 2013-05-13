@@ -15,6 +15,8 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.discovery.Discoverable;
+import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.discovery.ZKDiscoveryService;
 import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.FetchedMessage;
@@ -25,10 +27,7 @@ import com.continuuity.weave.api.logging.LogEntry;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.StackTraceElementCodec;
 import com.continuuity.weave.internal.logging.LogEntryDecoder;
-import com.continuuity.weave.internal.utils.Services;
 import com.continuuity.weave.internal.utils.Threads;
-import com.continuuity.discovery.Discoverable;
-import com.continuuity.discovery.DiscoveryServiceClient;
 import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
@@ -44,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -72,7 +70,7 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
 
   @Override
   protected void start() {
-    Futures.getUnchecked(Services.chainStart(kafkaClient, discoveryServiceClient));
+    kafkaClient.startAndWait();
     logPoller.start();
     super.start();
   }
@@ -90,10 +88,9 @@ final class ZKWeaveController extends AbstractServiceController implements Weave
         } catch (InterruptedException e) {
           LOG.warn("Joining of log poller thread interrupted.", e);
         }
-        Futures.addCallback(Services.chainStop(discoveryServiceClient, kafkaClient),
-                            new FutureCallback<List<ListenableFuture<Service.State>>>() {
+        Futures.addCallback(kafkaClient.stop(), new FutureCallback<Service.State>() {
           @Override
-          public void onSuccess(List<ListenableFuture<Service.State>> states) {
+          public void onSuccess(Service.State state) {
             try {
               future.get();
               result.set(State.TERMINATED);

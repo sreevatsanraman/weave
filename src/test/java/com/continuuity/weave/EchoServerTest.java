@@ -83,9 +83,9 @@ public class EchoServerTest {
       }
     }
 
-    TimeUnit.SECONDS.sleep(2);
-
     controller.stop().get();
+
+    TimeUnit.SECONDS.sleep(2);
   }
 
   @Before

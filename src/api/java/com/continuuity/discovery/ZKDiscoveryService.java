@@ -20,19 +20,14 @@ import com.continuuity.zookeeper.Cancellable;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
 import com.continuuity.zookeeper.OperationFuture;
-import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClient;
-import com.continuuity.zookeeper.ZKClientService;
-import com.continuuity.zookeeper.ZKClientServices;
 import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -56,7 +51,6 @@ import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -74,8 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *    <pre>
  *      {@code
  *
- *      DiscoveryService service = new ZKDiscoveryService(zkQuorum);
- *      service.startAndWait();
+ *      DiscoveryService service = new ZKDiscoveryService(zkClient);
  *      service.register(new Discoverable() {
  *        @Override
  *        public String getName() {
@@ -96,32 +89,17 @@ import java.util.concurrent.atomic.AtomicReference;
  *   </blockquote>
  * </p>
  */
-public class ZKDiscoveryService extends AbstractService implements DiscoveryService, DiscoveryServiceClient {
+public class ZKDiscoveryService implements DiscoveryService, DiscoveryServiceClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZKDiscoveryService.class);
   private static final String NAMESPACE = "/discoverable";
 
   private final AtomicReference<Multimap<String, Discoverable>> services;
   private final ConcurrentMap<String, Boolean> serviceWatched;
   private final ZKClient zkClient;
-  private final boolean ownedZKClient;
-
-  public ZKDiscoveryService(String zkConnectStr) {
-    this(zkConnectStr, NAMESPACE);
-  }
-
-  public ZKDiscoveryService(String zkConnectStr, String namespace) {
-    ownedZKClient = true;
-    zkClient = ZKClientServices.delegate(
-                  ZKClients.reWatchOnExpire(
-                    ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnectStr + namespace).build(),
-                                             RetryStrategies.fixDelay(2, TimeUnit.SECONDS))));
-    services = new AtomicReference<Multimap<String, Discoverable>>();
-    serviceWatched = Maps.newConcurrentMap();
-  }
 
   /**
    * Constructs ZKDiscoveryService using the provided zookeeper client for storing service registry.
-   * @param zkClient The {@link ZKClient} for interacting with zookeeper
+   * @param zkClient The {@link ZKClient} for interacting with zookeeper.
    */
   public ZKDiscoveryService(ZKClient zkClient) {
     this(zkClient, NAMESPACE);
@@ -131,51 +109,12 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
    * Constructs ZKDiscoveryService using the provided zookeeper client for storing service registry under namepsace.
    * @param zkClient of zookeeper quorum
    * @param namespace under which the service registered would be stored in zookeeper.
+   *                  If namespace is {@code null}, no namespace will be used.
    */
   public ZKDiscoveryService(ZKClient zkClient, String namespace) {
-    this.zkClient = ZKClients.namespace(zkClient, namespace);
-    ownedZKClient = false;
-    services = new AtomicReference<Multimap<String, Discoverable>>();
+    this.zkClient = namespace == null ? zkClient : ZKClients.namespace(zkClient, namespace);
+    services = new AtomicReference<Multimap<String, Discoverable>>(HashMultimap.<String, Discoverable>create());
     serviceWatched = Maps.newConcurrentMap();
-  }
-
-  @Override
-  protected void doStart() {
-    services.set(HashMultimap.<String, Discoverable>create());
-    if (ownedZKClient) {
-      Futures.addCallback(((ZKClientService) zkClient).start(), new FutureCallback<State>() {
-        @Override
-        public void onSuccess(State result) {
-          notifyStarted();
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-          notifyFailed(t);
-        }
-      });
-    } else {
-      notifyStarted();
-    }
-  }
-
-  @Override
-  protected void doStop() {
-    if (ownedZKClient) {
-      Futures.addCallback(((ZKClientService) zkClient).stop(), new FutureCallback<State>() {
-        @Override
-        public void onSuccess(State result) {
-          notifyStopped();
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-          notifyFailed(t);
-        }
-      });
-    } else {
-      notifyStopped();
-    }
   }
 
   /**
@@ -192,8 +131,6 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
    */
   @Override
   public Cancellable register(final Discoverable discoverable) {
-    Preconditions.checkState(isRunning(), "Service is not running");
-
     final Discoverable wrapper = new DiscoverableWrapper(discoverable);
     byte[] discoverableBytes = encode(wrapper);
 
@@ -296,14 +233,12 @@ public class ZKDiscoveryService extends AbstractService implements DiscoveryServ
 
   @Override
   public Iterable<Discoverable> discover(final String service) {
-    Preconditions.checkState(isRunning(), "Service is not running");
     if (serviceWatched.putIfAbsent(service, true) == null) {
       getChildren(service);
     }
     return new Iterable<Discoverable>() {
       @Override
       public Iterator<Discoverable> iterator() {
-        Preconditions.checkState(isRunning(), "Service is not running");
         return ImmutableList.copyOf(services.get().get(service)).iterator();
       }
     };

@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.internal.yarn;
 
+import com.continuuity.discovery.DiscoveryService;
 import com.continuuity.discovery.ZKDiscoveryService;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveContext;
@@ -23,8 +24,9 @@ import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
+import com.continuuity.weave.internal.utils.ServiceListenerAdapter;
 import com.continuuity.weave.internal.utils.Services;
-import com.continuuity.discovery.DiscoveryService;
+import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClient;
 import com.continuuity.zookeeper.ZKClientService;
@@ -42,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -75,11 +78,17 @@ public final class WeaveContainerMain extends ServiceMain {
     WeaveContext context = new BasicWeaveContext(containerInfo.getHost(), args,
                                                   decodeArgs(System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS)),
                                                   runnableSpec, instanceId, discoveryService);
-    new WeaveContainerMain().doMain(
-      wrapService(new WeaveContainerService(context, containerInfo,
-                                            getContainerZKClient(zkClientService, appRunId, runnableName),
-                                            runId, runnableSpec, ClassLoader.getSystemClassLoader()),
-                  discoveryService, zkClientService));
+
+    Service service = new WeaveContainerService(context, containerInfo,
+                                                getContainerZKClient(zkClientService, appRunId, runnableName),
+                                                runId, runnableSpec, ClassLoader.getSystemClassLoader());
+    service.addListener(createServiceListener(zkClientService), Threads.SAME_THREAD_EXECUTOR);
+
+    CountDownLatch stopLatch = new CountDownLatch(1);
+    zkClientService.addListener(createZKClientServiceListener(stopLatch), Threads.SAME_THREAD_EXECUTOR);
+
+    new WeaveContainerMain().doMain(wrapService(zkClientService, service));
+    stopLatch.await();
   }
 
   private static ZKClient getContainerZKClient(ZKClient zkClient, RunId appRunId, String runnableName) {
@@ -99,20 +108,19 @@ public final class WeaveContainerMain extends ServiceMain {
     return new Gson().fromJson(args, String[].class);
   }
 
-  private static Service wrapService(final WeaveContainerService containerService,
-                                     final DiscoveryService discoveryService,
-                                     final ZKClientService zkClientService) {
+  private static Service wrapService(final ZKClientService zkClientService,
+                                     final Service containerService) {
     return new Service() {
 
       @Override
       public ListenableFuture<State> start() {
-        return Futures.transform(Services.chainStart(zkClientService, discoveryService, containerService),
+        return Futures.transform(Services.chainStart(zkClientService, containerService),
                                  new AsyncFunction<List<ListenableFuture<State>>, State>() {
-                                   @Override
-                                   public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
-                                     return input.get(input.size() - 1);
-                                   }
-                                 });
+          @Override
+          public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
+            return input.get(1);
+          }
+        });
       }
 
       @Override
@@ -132,13 +140,13 @@ public final class WeaveContainerMain extends ServiceMain {
 
       @Override
       public ListenableFuture<State> stop() {
-        return Futures.transform(Services.chainStop(containerService, discoveryService, zkClientService),
+        return Futures.transform(Services.chainStop(containerService, zkClientService),
                                  new AsyncFunction<List<ListenableFuture<State>>, State>() {
-                                   @Override
-                                   public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
-                                     return input.get(0);
-                                   }
-                                 });
+          @Override
+          public ListenableFuture<State> apply(List<ListenableFuture<State>> input) throws Exception {
+            return input.get(0);
+          }
+        });
       }
 
       @Override
@@ -149,6 +157,34 @@ public final class WeaveContainerMain extends ServiceMain {
       @Override
       public void addListener(Listener listener, Executor executor) {
         containerService.addListener(listener, executor);
+      }
+    };
+  }
+
+  private static Service.Listener createServiceListener(final ZKClientService zkClientService) {
+    return new ServiceListenerAdapter() {
+      @Override
+      public void terminated(Service.State from) {
+        zkClientService.stop();
+      }
+
+      @Override
+      public void failed(Service.State from, Throwable failure) {
+        zkClientService.stop();
+      }
+    };
+  }
+
+  private static Service.Listener createZKClientServiceListener(final CountDownLatch stopLatch) {
+    return new ServiceListenerAdapter() {
+      @Override
+      public void terminated(Service.State from) {
+        stopLatch.countDown();
+      }
+
+      @Override
+      public void failed(Service.State from, Throwable failure) {
+        stopLatch.countDown();
       }
     };
   }

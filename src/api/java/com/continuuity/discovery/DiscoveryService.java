@@ -16,12 +16,11 @@
 package com.continuuity.discovery;
 
 import com.continuuity.zookeeper.Cancellable;
-import com.google.common.util.concurrent.Service;
 
 /**
  * DiscoveryService defines interface for registering {@link Discoverable}.
  */
-public interface DiscoveryService extends Service {
+public interface DiscoveryService {
 
   /**
    * Registers a {@link Discoverable} service.

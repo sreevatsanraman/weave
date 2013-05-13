@@ -19,7 +19,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import com.continuuity.weave.internal.utils.Threads;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.SettableFuture;
 import org.slf4j.ILoggerFactory;
@@ -95,8 +94,15 @@ public abstract class ServiceMain {
     // Starts the service
     service.start();
 
-    // If container failed with exception, the future.get() will throws exception
-    completion.get();
+    try {
+      // If container failed with exception, the future.get() will throws exception
+      completion.get();
+    } finally {
+//      ILoggerFactory loggerFactory = LoggerFactory.getILoggerFactory();
+//      if (loggerFactory instanceof LoggerContext) {
+//        ((LoggerContext) loggerFactory).stop();
+//      }
+    }
   }
 
   protected abstract String getHostname();

@@ -32,7 +32,8 @@ public final class StackTraceElementCodec implements JsonSerializer<StackTraceEl
                                                      JsonDeserializer<StackTraceElement> {
 
   @Override
-  public StackTraceElement deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+  public StackTraceElement deserialize(JsonElement json, Type typeOfT,
+                                       JsonDeserializationContext context) throws JsonParseException {
     JsonObject jsonObj = json.getAsJsonObject();
     return new StackTraceElement(jsonObj.get("className").getAsString(),
                                  jsonObj.get("method").getAsString(),

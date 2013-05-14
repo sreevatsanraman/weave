@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 /**
- *
+ * Represents a specification of a {@link WeaveRunnable}.
  */
 public interface WeaveRunnableSpecification {
 
@@ -31,7 +31,10 @@ public interface WeaveRunnableSpecification {
 
   Map<String, String> getConfigs();
 
-  public static final class Builder {
+  /**
+   * Builder for constructing {@link WeaveRunnableSpecification}.
+   */
+  static final class Builder {
 
     private String name;
     private Map<String, String> args;

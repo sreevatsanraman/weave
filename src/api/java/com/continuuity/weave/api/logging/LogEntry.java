@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,13 +15,14 @@
  */
 package com.continuuity.weave.api.logging;
 
-import java.net.InetAddress;
-
 /**
- *
+ * Represents a log entry emitted by application.
  */
 public interface LogEntry {
 
+  /**
+   * Log level.
+   */
   enum Level {
     FATAL,
     ERROR,

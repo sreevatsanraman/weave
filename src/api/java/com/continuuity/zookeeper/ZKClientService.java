@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -16,10 +16,16 @@
 package com.continuuity.zookeeper;
 
 import com.continuuity.internal.zookeeper.DefaultZKClientService;
+import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Service;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+
+import java.util.List;
 
 /**
  * A {@link ZKClient} that extends from {@link Service} to provide lifecycle management functions.
@@ -38,13 +44,14 @@ public interface ZKClientService extends ZKClient, Service {
 
   /**
    * Builder for creating an implementation of {@link ZKClientService}.
-   * The default client timeout is 4000ms.
+   * The default client timeout is 10000ms.
    */
   public static final class Builder {
 
     private final String connectStr;
     private int timeout = 10000;
     private Watcher connectionWatcher;
+    private Multimap<String, ACL> acls = HashMultimap.create();
 
     /**
      * Creates a {@link Builder} with the given ZooKeeper connection string.

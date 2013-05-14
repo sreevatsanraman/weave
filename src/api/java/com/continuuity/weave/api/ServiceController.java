@@ -20,7 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.Executor;
 
 /**
- *
+ * This interface is for controlling a running application.
  */
 public interface ServiceController {
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- *
+ * A {@link MessageSetEncoder} that compress messages using snappy.
  */
 final class SnappyMessageSetEncoder extends AbstractCompressedMessageSetEncoder {
 

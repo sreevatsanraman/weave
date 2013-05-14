@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 
 /**
- *
+ * A straightforward implementation of {@link LocalFile}.
  */
 public final class DefaultLocalFile implements LocalFile {
 

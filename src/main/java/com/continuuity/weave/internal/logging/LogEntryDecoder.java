@@ -30,7 +30,8 @@ import java.lang.reflect.Type;
 public final class LogEntryDecoder implements JsonDeserializer<LogEntry> {
 
   @Override
-  public LogEntry deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+  public LogEntry deserialize(JsonElement json, Type typeOfT,
+                              JsonDeserializationContext context) throws JsonParseException {
     if (!json.isJsonObject()) {
       return null;
     }

@@ -60,7 +60,7 @@ public class KafkaTest {
     return new Thread() {
       public void run() {
         PreparePublish preparePublish = kafkaClient.preparePublish(topic, compression);
-        for (int i = 0 ; i < count; i++) {
+        for (int i = 0; i < count; i++) {
           preparePublish.add((i + " " + message).getBytes(Charsets.UTF_8), 0);
         }
         Futures.getUnchecked(preparePublish.publish());

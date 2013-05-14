@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -19,6 +19,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * A {@link ListenableFuture} that also provides the requested path for a operation.
+ *
+ * @param <V> The result type returned by this Future's {@link #get()} method.
  */
 public interface OperationFuture<V> extends ListenableFuture<V> {
 

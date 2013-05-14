@@ -16,11 +16,9 @@
 package com.continuuity.zookeeper;
 
 import com.continuuity.weave.internal.utils.Threads;
-import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -29,56 +27,24 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Collection of helper methods for common operations that usually needed when interacting with ZooKeeper
+ * Collection of helper methods for common operations that usually needed when interacting with ZooKeeper.
  */
 public final class ZKOperations {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZKOperations.class);
 
+  /**
+   * Interface for defining callback method to receive node data updates.
+   */
   public interface DataCallback {
     /**
      * Invoked when data of the node changed.
      * @param nodeData New data of the node, or {@code null} if the node has been deleted.
      */
     void updated(NodeData nodeData);
-  }
-
-  public interface DataSupplier extends Supplier<NodeData>, Cancellable {
-  }
-
-  /**
-   * Returns a supplier that suppliers latest known node data of the given path.
-   *
-   * @param zkClient The {@link ZKClient} for the operation.
-   * @param path Path for fetching data
-   * @return A {@link Supplier} of {@link NodeData}, which upon calling {@link com.google.common.base.Supplier#get()},
-   *         the latest copy of NodeData will be returned or {@code null} if the node has been deleted.
-   */
-  public static DataSupplier getDataSupplier(ZKClient zkClient, String path) {
-    final AtomicReference<NodeData> nodeDataRef = new AtomicReference<NodeData>();
-    final Cancellable cancellable = watchData(zkClient, path, new DataCallback() {
-      @Override
-      public void updated(NodeData nodeData) {
-        nodeDataRef.set(nodeData);
-      }
-    });
-
-    return new DataSupplier() {
-      @Override
-      public NodeData get() {
-        return nodeDataRef.get();
-      }
-
-      @Override
-      public void cancel() {
-        cancellable.cancel();
-      }
-    };
   }
 
   /**
@@ -176,8 +142,8 @@ public final class ZKOperations {
 
   /**
    * Watch for the given path until it exists.
-   * @param zkClient
-   * @param path
+   * @param zkClient The {@link ZKClient} to use.
+   * @param path A ZooKeeper path to watch for existent.
    */
   private static void watchExists(final ZKClient zkClient, final String path, final SettableFuture<String> completion) {
     Futures.addCallback(zkClient.exists(path, new Watcher() {

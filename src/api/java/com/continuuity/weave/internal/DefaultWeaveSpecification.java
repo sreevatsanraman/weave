@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- *
+ * Straightforward implementation of {@link WeaveSpecification}.
  */
 public final class DefaultWeaveSpecification implements WeaveSpecification {
 
@@ -57,6 +57,9 @@ public final class DefaultWeaveSpecification implements WeaveSpecification {
     return orders;
   }
 
+  /**
+   * Straightforward implementation of {@link Order}.
+   */
   public static final class DefaultOrder implements Order {
 
     private final Set<String> names;

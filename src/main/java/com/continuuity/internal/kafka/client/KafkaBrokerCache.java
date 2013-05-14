@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -247,7 +247,7 @@ final class KafkaBrokerCache extends AbstractIdleService {
     });
   }
 
-  private <K,V> void removeDiff(Set<K> keys, Map<K,V> map) {
+  private <K, V> void removeDiff(Set<K> keys, Map<K, V> map) {
     for (K key : ImmutableSet.copyOf(Sets.difference(map.keySet(), keys))) {
       map.remove(key);
     }

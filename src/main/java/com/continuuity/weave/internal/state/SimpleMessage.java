@@ -78,7 +78,7 @@ final class SimpleMessage implements Message {
     if (!(obj instanceof Message)) {
       return false;
     }
-    Message other = (Message)obj;
+    Message other = (Message) obj;
     return type == other.getType()
       && scope == other.getScope()
       && Objects.equal(runnableName, other.getRunnableName())

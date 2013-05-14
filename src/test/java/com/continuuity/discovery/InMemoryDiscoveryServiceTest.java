@@ -45,7 +45,7 @@ public class InMemoryDiscoveryServiceTest {
   @Test
   public void simpleDiscoverable() throws Exception {
     DiscoveryService discoveryService = new InMemoryDiscoveryService();
-    DiscoveryServiceClient discoveryServiceClient = (DiscoveryServiceClient)discoveryService;
+    DiscoveryServiceClient discoveryServiceClient = (DiscoveryServiceClient) discoveryService;
 
     // Register one service running on one host:port
     Cancellable cancellable = register(discoveryService, "foo", "localhost", 8090);

@@ -28,7 +28,8 @@ public final class KillZKSession {
    * @param client that needs to be killed.
    * @param connectionString of Quorum
    * @param maxMs time in millisecond specifying the max time to kill a client.
-   * @throws Exception
+   * @throws IOException When there is IO error
+   * @throws InterruptedException When call has been interrupted.
    */
   public static void kill(ZooKeeper client, String connectionString,
                           int maxMs) throws IOException, InterruptedException {

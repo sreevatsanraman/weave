@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -21,7 +21,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import java.util.zip.CRC32;
 
 /**
- *
+ * A base implementation of {@link MessageSetEncoder}.
  */
 abstract class AbstractMessageSetEncoder implements MessageSetEncoder {
 

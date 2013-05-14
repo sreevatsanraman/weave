@@ -22,11 +22,17 @@ import com.continuuity.weave.api.Command;
  */
 public interface Message {
 
+  /**
+   * Type of message.
+   */
   enum Type {
     SYSTEM,
     USER
   }
 
+  /**
+   * Scope of the message.
+   */
   enum Scope {
     APPLICATION,
     ALL_RUNNABLE,

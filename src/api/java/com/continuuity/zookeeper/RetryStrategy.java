@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -20,6 +20,9 @@ package com.continuuity.zookeeper;
  */
 public interface RetryStrategy {
 
+  /**
+   * Defines ZooKeeper operation type that triggers retry.
+   */
   enum OperationType {
     CREATE,
     EXISTS,

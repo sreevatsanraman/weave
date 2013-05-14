@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.api;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
@@ -58,6 +59,54 @@ public interface Command {
 
     private Builder(String command) {
       this.command = command;
+    }
+
+    /**
+     * Simple implementation of {@link com.continuuity.weave.api.Command}.
+     */
+    private static final class SimpleCommand implements Command {
+      private final String command;
+      private final Map<String, String> options;
+
+      SimpleCommand(String command, Map<String, String> options) {
+        this.command = command;
+        this.options = options;
+      }
+
+      @Override
+      public String getCommand() {
+        return command;
+      }
+
+      @Override
+      public Map<String, String> getOptions() {
+        return options;
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hashCode(command, options);
+      }
+
+      @Override
+      public String toString() {
+        return Objects.toStringHelper(Command.class)
+          .add("command", command)
+          .add("options", options)
+          .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (obj == this) {
+          return true;
+        }
+        if (!(obj instanceof Command)) {
+          return false;
+        }
+        Command other = (Command) obj;
+        return command.equals(other.getCommand()) && options.equals(other.getOptions());
+      }
     }
   }
 }

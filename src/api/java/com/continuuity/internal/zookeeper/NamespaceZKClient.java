@@ -29,8 +29,8 @@ import org.apache.zookeeper.data.Stat;
 import javax.annotation.Nullable;
 
 /**
-*
-*/
+ * A {@link ZKClient} that namespace every paths.
+ */
 public final class NamespaceZKClient implements ZKClient {
 
   private final String namespace;
@@ -61,7 +61,8 @@ public final class NamespaceZKClient implements ZKClient {
   @Override
   public OperationFuture<String> create(String path, @Nullable byte[] data, CreateMode createMode,
                                         boolean createParent) {
-    return relayPath(delegate.create(namespace + path, data, createMode, createParent), this.<String>createFuture(path));
+    return relayPath(delegate.create(namespace + path, data, createMode, createParent),
+                     this.<String>createFuture(path));
   }
 
   @Override

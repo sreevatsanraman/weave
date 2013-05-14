@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,8 +18,8 @@ package com.continuuity.weave.internal;
 import com.continuuity.weave.api.ResourceSpecification;
 
 /**
-*
-*/
+ * Straightforward implementation of {@link ResourceSpecification}.
+ */
 public final class DefaultResourceSpecification implements ResourceSpecification {
   private final int cores;
   private final int memorySize;

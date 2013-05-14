@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,7 +18,7 @@ package com.continuuity.internal.kafka.client;
 import java.net.InetSocketAddress;
 
 /**
- *
+ * Represents broker information of a given topic.
  */
 final class TopicBroker {
 

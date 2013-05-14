@@ -82,7 +82,7 @@ public final class MessageCodec {
       Message.Type type = Message.Type.valueOf(jsonObj.get("type").getAsString());
       Message.Scope scope = Message.Scope.valueOf(jsonObj.get("scope").getAsString());
       JsonElement name = jsonObj.get("runnableName");
-      String runnableName = (name == null || name.isJsonNull()) ? null :name.getAsString();
+      String runnableName = (name == null || name.isJsonNull()) ? null : name.getAsString();
       Command command = context.deserialize(jsonObj.get("command"), Command.class);
 
       return new SimpleMessage(type, scope, runnableName, command);

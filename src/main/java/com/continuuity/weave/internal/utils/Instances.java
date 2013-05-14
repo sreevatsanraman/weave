@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -40,7 +40,7 @@ public final class Instances {
       unsafe = f.get(null);
 
       newInstance = clz.getMethod("allocateInstance", Class.class);
-    } catch(Exception e) {
+    } catch (Exception e) {
       unsafe = null;
       newInstance = null;
     }

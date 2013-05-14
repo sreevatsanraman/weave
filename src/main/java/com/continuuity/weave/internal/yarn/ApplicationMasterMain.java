@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -16,8 +16,8 @@
 package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.RunId;
-import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.RunIds;
+import com.continuuity.weave.internal.ServiceMain;
 
 import java.io.File;
 import java.net.InetAddress;

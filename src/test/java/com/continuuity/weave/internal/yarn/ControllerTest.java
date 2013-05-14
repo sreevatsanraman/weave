@@ -17,6 +17,7 @@ package com.continuuity.weave.internal.yarn;
 
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
+import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
@@ -68,8 +69,8 @@ public class ControllerTest {
       });
       service.startAndWait();
 
-      final ZKWeaveController controller = new ZKWeaveController(zkClientService, runId, ImmutableList.<LogHandler>of());
-      controller.start();
+      final WeaveController controller = new ZKWeaveController(zkClientService, runId, ImmutableList.<LogHandler>of());
+      ((ZKWeaveController) controller).start();
 
       controller.sendCommand(Command.Builder.of("test").build()).get(2, TimeUnit.SECONDS);
       controller.stop().get(2, TimeUnit.SECONDS);

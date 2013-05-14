@@ -18,6 +18,7 @@ package com.continuuity.weave.internal.state;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.internal.StackTraceElementCodec;
+import com.continuuity.weave.internal.json.StateNodeCodec;
 import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
@@ -220,7 +221,7 @@ public final class ZKServiceDecorator extends AbstractService {
   }
 
   private <V> byte[] encode(V data, Class<? extends V> clz) {
-    return new GsonBuilder().registerTypeAdapter(StateNode.class, new StateNode.StateNodeCodec())
+    return new GsonBuilder().registerTypeAdapter(StateNode.class, new StateNodeCodec())
                             .registerTypeAdapter(StackTraceElement.class, new StackTraceElementCodec())
                             .create()
       .toJson(data, clz).getBytes(Charsets.UTF_8);

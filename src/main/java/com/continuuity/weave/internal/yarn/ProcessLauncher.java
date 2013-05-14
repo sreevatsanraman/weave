@@ -24,10 +24,16 @@ public interface ProcessLauncher {
 
   PrepareLaunchContext prepareLaunch();
 
+  /**
+   * For controlling a launch yarn process.
+   */
   interface ProcessController {
     void kill();
   }
 
+  /**
+   * For setting up the launcher.
+   */
   interface PrepareLaunchContext {
 
     interface AfterUser {

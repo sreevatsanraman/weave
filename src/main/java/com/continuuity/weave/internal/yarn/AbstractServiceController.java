@@ -19,6 +19,7 @@ import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.ServiceController;
 import com.continuuity.weave.internal.StackTraceElementCodec;
+import com.continuuity.weave.internal.json.StateNodeCodec;
 import com.continuuity.weave.internal.state.Messages;
 import com.continuuity.weave.internal.state.StateNode;
 import com.continuuity.weave.internal.state.SystemMessages;
@@ -140,7 +141,7 @@ public abstract class AbstractServiceController implements ServiceController {
     if (data == null) {
       return new StateNode(State.TERMINATED, null);
     }
-    return new GsonBuilder().registerTypeAdapter(StateNode.class, new StateNode.StateNodeCodec())
+    return new GsonBuilder().registerTypeAdapter(StateNode.class, new StateNodeCodec())
       .registerTypeAdapter(StackTraceElement.class, new StackTraceElementCodec())
       .create()
       .fromJson(new String(data, Charsets.UTF_8), StateNode.class);

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,9 +15,9 @@
  */
 package com.continuuity.weave.internal;
 
+import com.continuuity.weave.internal.utils.Threads;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import com.continuuity.weave.internal.utils.Threads;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.SettableFuture;

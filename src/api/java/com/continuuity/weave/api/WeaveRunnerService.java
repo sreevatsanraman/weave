@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,7 +18,9 @@ package com.continuuity.weave.api;
 import com.google.common.util.concurrent.Service;
 
 /**
- *
+ * A {@link WeaveRunner} that extends from {@link Service} to provide lifecycle management functions.
+ * The {@link #start()} method needed to be called before calling any other method on this interface.
+ * When done with this service, call {@link #stop()} to release any resources that it holds.
  */
 public interface WeaveRunnerService extends WeaveRunner, Service {
 

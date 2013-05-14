@@ -60,25 +60,4 @@ public final class StateNode {
     return builder.toString();
   }
 
-  public static final class StateNodeCodec implements JsonSerializer<StateNode>, JsonDeserializer<StateNode> {
-
-    @Override
-    public StateNode deserialize(JsonElement json, Type typeOfT,
-                                 JsonDeserializationContext context) throws JsonParseException {
-      JsonObject jsonObj = json.getAsJsonObject();
-      return new StateNode(ServiceController.State.valueOf(jsonObj.get("state").getAsString()),
-                           context.<StackTraceElement[]>deserialize(jsonObj.get("stackTraces"),
-                                                                    StackTraceElement[].class));
-    }
-
-    @Override
-    public JsonElement serialize(StateNode src, Type typeOfSrc, JsonSerializationContext context) {
-      JsonObject jsonObj = new JsonObject();
-      jsonObj.addProperty("state", src.getState().name());
-      if (src.getStackTraces() != null) {
-        jsonObj.add("stackTraces", context.serialize(src.getStackTraces(), StackTraceElement[].class));
-      }
-      return jsonObj;
-    }
-  }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -36,7 +36,7 @@ final class KafkaResponseHandler extends SimpleChannelHandler {
       return;
     }
 
-    bufferer.apply((ChannelBuffer)msg);
+    bufferer.apply((ChannelBuffer) msg);
     ChannelBuffer buffer = bufferer.getNext();
     while (buffer.readable()) {
       // Send the response object upstream

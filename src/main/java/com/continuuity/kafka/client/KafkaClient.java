@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -21,7 +21,10 @@ import com.google.common.util.concurrent.Service;
 import java.util.Iterator;
 
 /**
- *
+ * This interface provides methods for interacting with kafka broker. It also
+ * extends from {@link Service} for lifecycle management. The {@link #start()} method
+ * must be called prior to other methods in this class. When instance of this class
+ * is not needed, call {@link #stop()}} to release any resources that it holds.
  */
 public interface KafkaClient extends Service {
 

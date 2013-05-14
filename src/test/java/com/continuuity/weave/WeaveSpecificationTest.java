@@ -13,6 +13,9 @@ import java.util.List;
  */
 public class WeaveSpecificationTest {
 
+  /**
+   * Dummy for test.
+   */
   public static final class DummyRunnable extends AbstractWeaveRunnable {
 
     @Override

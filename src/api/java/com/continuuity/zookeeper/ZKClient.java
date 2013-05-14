@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -31,7 +31,6 @@ public interface ZKClient {
   /**
    * Adds a {@link Watcher} that will be called whenever connection state change.
    * @param watcher The watcher to set.
-   * @return This builder.
    */
   void addConnectionWatcher(Watcher watcher);
 

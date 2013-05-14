@@ -39,7 +39,8 @@ public class YarnTest {
       YarnConfiguration config = new YarnConfiguration(new Configuration());
 
       // TODO: Hack
-      config.set("yarn.resourcemanager.scheduler.class", "org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler");
+      config.set("yarn.resourcemanager.scheduler.class",
+                 "org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler");
       config.set("yarn.minicluster.fixed.ports", "true");
 
       MiniYARNCluster cluster = new MiniYARNCluster("test-cluster", 1, 1, 1);

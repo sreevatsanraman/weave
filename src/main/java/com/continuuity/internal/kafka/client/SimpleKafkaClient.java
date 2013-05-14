@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -50,19 +50,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- *
+ * Basic implementation of {@link KafkaClient}.
  */
 public final class SimpleKafkaClient extends AbstractIdleService implements KafkaClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimpleKafkaClient.class);
   private static final int BROKER_POLL_INTERVAL = 100;
 
-  private final ZKClient zkClient;
   private final KafkaBrokerCache brokerCache;
   private ConnectionPool connectionPool;
 
   public SimpleKafkaClient(ZKClient zkClient) {
-    this.zkClient = zkClient;
     this.brokerCache = new KafkaBrokerCache(zkClient);
   }
 

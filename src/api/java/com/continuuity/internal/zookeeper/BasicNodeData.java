@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -22,7 +22,7 @@ import org.apache.zookeeper.data.Stat;
 import java.util.Arrays;
 
 /**
- *
+ * A straightforward implementation for {@link NodeData}.
  */
 final class BasicNodeData implements NodeData {
 

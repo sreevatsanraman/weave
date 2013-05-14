@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Provides netty socket connection reuse
+ * Provides netty socket connection reuse.
  */
 final class ConnectionPool {
 
@@ -39,7 +39,7 @@ final class ConnectionPool {
   private final ConcurrentMap<InetSocketAddress, Queue<ChannelFuture>> connections;
 
   /**
-   * For releasing a conneciton back to the pool
+   * For releasing a connection back to the pool.
    */
   interface ConnectionReleaser {
     void release();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,7 +15,6 @@
  */
 package com.continuuity.zookeeper;
 
-import com.google.common.base.Preconditions;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -43,9 +42,10 @@ public final class ZKClientServices {
     while (!(zkClient instanceof ZKClientService) && zkClient instanceof ForwardingZKClient) {
       zkClient = ((ForwardingZKClient) zkClient).getDelegate();
     }
-    Preconditions.checkArgument(zkClient instanceof ZKClientService,
-                                "No ZKClientService found from the delegation hierarchy");
-    return delegate(client, (ZKClientService) zkClient);
+    if (zkClient instanceof ZKClientService) {
+      return delegate(client, (ZKClientService) zkClient);
+    }
+    throw new IllegalArgumentException("No ZKClientService found from the delegation hierarchy");
   }
 
   /**

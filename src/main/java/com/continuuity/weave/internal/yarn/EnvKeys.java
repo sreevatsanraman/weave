@@ -16,7 +16,7 @@
 package com.continuuity.weave.internal.yarn;
 
 /**
- * Places for define common environment keys
+ * Places for define common environment keys.
  */
 public final class EnvKeys {
 

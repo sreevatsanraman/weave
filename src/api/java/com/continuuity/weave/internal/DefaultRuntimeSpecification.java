@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 
 /**
- *
+ * Straightforward implementation of {@link RuntimeSpecification}.
  */
 public final class DefaultRuntimeSpecification implements RuntimeSpecification {
 

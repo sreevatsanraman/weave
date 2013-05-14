@@ -18,7 +18,7 @@ package com.continuuity.weave.api;
 import com.continuuity.zookeeper.Cancellable;
 
 /**
- *
+ * This interface provides way to announce availability of a service.
  */
 public interface ServiceAnnouncer {
 

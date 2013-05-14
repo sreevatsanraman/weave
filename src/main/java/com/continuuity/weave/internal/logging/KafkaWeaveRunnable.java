@@ -54,7 +54,7 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
 
   @Override
   public void initialize(WeaveContext context) {
-    Map<String,String> args = context.getSpecification().getConfigs();
+    Map<String, String> args = context.getSpecification().getConfigs();
     String zkConnectStr = System.getenv(EnvKeys.WEAVE_LOG_KAFKA_ZK);
 
     try {

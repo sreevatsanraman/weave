@@ -144,6 +144,9 @@ public final class InMemoryZKServer implements Service {
     delegateService.addListener(listener, executor);
   }
 
+  /**
+   * Builder for creating instance of {@link InMemoryZKServer}.
+   */
   public static final class Builder {
     private File dataDir;
     private boolean autoCleanDataDir = false;

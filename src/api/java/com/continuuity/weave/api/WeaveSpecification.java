@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -34,10 +34,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- *
+ * Represents specification of a {@link WeaveApplication}.
  */
 public interface WeaveSpecification {
 
+  /**
+   * Defines execution order.
+   */
   interface Order {
 
     enum Type {
@@ -63,7 +66,7 @@ public interface WeaveSpecification {
   /**
    * Builder for constructing instance of {@link WeaveSpecification}.
    */
-  public static final class Builder {
+  static final class Builder {
 
     private String name;
     private Map<String, RuntimeSpecification> runnables = Maps.newHashMap();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,7 +18,8 @@ package com.continuuity.internal.kafka.client;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
- *
+ * This represents a set of messages that goes into the same message set and get encoded as
+ * single kafka message set.
  */
 interface MessageSetEncoder {
 

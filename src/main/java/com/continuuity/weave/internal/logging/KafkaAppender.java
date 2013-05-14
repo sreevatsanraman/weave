@@ -15,14 +15,6 @@
  */
 package com.continuuity.weave.internal.logging;
 
-import ch.qos.logback.classic.pattern.ClassOfCallerConverter;
-import ch.qos.logback.classic.pattern.FileOfCallerConverter;
-import ch.qos.logback.classic.pattern.LineOfCallerConverter;
-import ch.qos.logback.classic.pattern.MethodOfCallerConverter;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.classic.spi.IThrowableProxy;
-import ch.qos.logback.classic.spi.StackTraceElementProxy;
-import ch.qos.logback.core.AppenderBase;
 import com.continuuity.internal.kafka.client.Compression;
 import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.KafkaClient;
@@ -33,6 +25,14 @@ import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClientService;
 import com.continuuity.zookeeper.ZKClientServices;
 import com.continuuity.zookeeper.ZKClients;
+import ch.qos.logback.classic.pattern.ClassOfCallerConverter;
+import ch.qos.logback.classic.pattern.FileOfCallerConverter;
+import ch.qos.logback.classic.pattern.LineOfCallerConverter;
+import ch.qos.logback.classic.pattern.MethodOfCallerConverter;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.IThrowableProxy;
+import ch.qos.logback.classic.spi.StackTraceElementProxy;
+import ch.qos.logback.core.AppenderBase;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -210,7 +210,7 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
   }
 
   /**
-   * Creates a {@link Runnable} that writes all logs in the buffer into kafka
+   * Creates a {@link Runnable} that writes all logs in the buffer into kafka.
    * @return The Runnable task
    */
   private Runnable createFlushTask() {

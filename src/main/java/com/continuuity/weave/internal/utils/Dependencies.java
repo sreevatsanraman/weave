@@ -15,7 +15,6 @@
  */
 package com.continuuity.weave.internal.utils;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -30,7 +29,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.signature.SignatureVisitor;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -43,6 +41,9 @@ import java.util.Set;
  */
 public final class Dependencies {
 
+  /**
+   * Represents a callback for accepting a class during dependency traversal.
+   */
   public interface ClassAcceptor {
     boolean accept(String className, byte[] bytecode);
   }
@@ -249,7 +250,7 @@ public final class Dependencies {
         @Override
         public void visitLdcInsn(Object cst) {
           if (cst instanceof Type) {
-            addType((Type)cst);
+            addType((Type) cst);
           }
         }
 

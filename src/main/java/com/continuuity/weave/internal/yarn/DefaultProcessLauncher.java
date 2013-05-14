@@ -76,7 +76,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
   }
 
   /**
-   * Helper to connect to container manager (node manager)
+   * Helper to connect to container manager (node manager).
    */
   private ContainerManager connectContainerManager() {
     String cmIpPortStr = String.format("%s:%d", container.getNodeId().getHost(), container.getNodeId().getPort());
@@ -252,7 +252,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
           GetContainerStatusRequest statusRequest = Records.newRecord(GetContainerStatusRequest.class);
           statusRequest.setContainerId(container.getId());
           GetContainerStatusResponse statusResponse = containerManager.getContainerStatus(statusRequest);
-          LOG.info("Container status: " + statusResponse.getStatus() + " " + statusResponse.getStatus().getDiagnostics());
+          LOG.info("Container status: {} {}", statusResponse.getStatus(), statusResponse.getStatus().getDiagnostics());
 
           completed = (statusResponse.getStatus().getState() == ContainerState.COMPLETE);
         }

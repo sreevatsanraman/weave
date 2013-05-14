@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -31,7 +31,8 @@ final class Bufferer {
   }
 
   /**
-   * Returns the buffer if the buffer data is ready to be consumed, otherwise return {@link ChannelBuffers#EMPTY_BUFFER}
+   * Returns the buffer if the buffer data is ready to be consumed,
+   * otherwise return {@link ChannelBuffers#EMPTY_BUFFER}.
    */
   ChannelBuffer getNext() {
     if (currentSize < 0) {

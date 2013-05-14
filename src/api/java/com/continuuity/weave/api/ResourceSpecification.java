@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,7 +18,7 @@ package com.continuuity.weave.api;
 import com.continuuity.weave.internal.DefaultResourceSpecification;
 
 /**
- *
+ * This interface provides specification for resource requirements.
  */
 public interface ResourceSpecification {
 
@@ -51,13 +51,13 @@ public interface ResourceSpecification {
   int getMemorySize();
 
   /**
-   * Returns the uplink bandwidth in Mbps
+   * Returns the uplink bandwidth in Mbps.
    * @return Uplink bandwidth or -1 representing unlimited bandwidth.
    */
   int getUplink();
 
   /**
-   * Returns the downlink bandwidth in Mbps
+   * Returns the downlink bandwidth in Mbps.
    * @return Downlink bandwidth or -1 representing unlimited bandwidth.
    */
   int getDownlink();

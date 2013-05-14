@@ -58,6 +58,7 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   private static final int BROKER_POLL_INTERVAL = 100;
 
   private final KafkaBrokerCache brokerCache;
+  private ClientBootstrap bootstrap;
   private ConnectionPool connectionPool;
 
   public SimpleKafkaClient(ZKClient zkClient) {
@@ -68,9 +69,8 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   protected void startUp() throws Exception {
     brokerCache.startAndWait();
     ThreadFactory threadFactory = Threads.createDaemonThreadFactory("kafka-client-netty-%d");
-    ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
-                                                      Executors.newSingleThreadExecutor(threadFactory),
-                                                      Executors.newFixedThreadPool(4, threadFactory)));
+    bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newSingleThreadExecutor(threadFactory),
+                                                                      Executors.newFixedThreadPool(4, threadFactory)));
     bootstrap.setPipelineFactory(new KafkaChannelPipelineFactory());
     connectionPool = new ConnectionPool(bootstrap);
   }
@@ -78,6 +78,7 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   @Override
   protected void shutDown() throws Exception {
     connectionPool.close();
+    bootstrap.releaseExternalResources();
     brokerCache.stopAndWait();
   }
 

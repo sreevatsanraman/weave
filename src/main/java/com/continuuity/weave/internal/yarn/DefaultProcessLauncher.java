@@ -241,8 +241,8 @@ final class DefaultProcessLauncher implements ProcessLauncher {
     }
 
     @Override
-    public void stop() {
-      LOG.info("Request to stop container: " + container.getId());
+    public void kill() {
+      LOG.info("Request to kill container: " + container.getId());
       StopContainerRequest stopRequest = Records.newRecord(StopContainerRequest.class);
       stopRequest.setContainerId(container.getId());
       try {
@@ -257,7 +257,7 @@ final class DefaultProcessLauncher implements ProcessLauncher {
           completed = (statusResponse.getStatus().getState() == ContainerState.COMPLETE);
         }
       } catch (YarnRemoteException e) {
-        LOG.error("Fail to stop container.", e);
+        LOG.error("Fail to kill container.", e);
         throw Throwables.propagate(e);
       }
     }

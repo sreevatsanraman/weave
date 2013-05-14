@@ -188,7 +188,8 @@ public final class ApplicationMasterService implements Service {
 
     runningContainers.stopAll();
 
-    while (!ids.isEmpty()) {
+    int count = 0;
+    while (!ids.isEmpty() && count++ < 5) {
       AllocateResponse allocateResponse = amrmClient.allocate(0.0f);
       for (ContainerStatus status : allocateResponse.getAMResponse().getCompletedContainersStatuses()) {
         ids.remove(status.getContainerId());

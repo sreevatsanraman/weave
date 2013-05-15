@@ -18,9 +18,10 @@ package com.continuuity.weave.internal.yarn;
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.logging.LogHandler;
-import com.continuuity.weave.internal.api.RunIds;
+import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.zk.InMemoryZKServer;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -49,8 +50,11 @@ public class ControllerTest {
 
     try {
       RunId runId = RunIds.generate();
+      ZKClientService zkClientService = ZKClientService.Builder.of(zkServer.getConnectionStr()).build();
+      zkClientService.startAndWait();
+
       ZKServiceDecorator service = new ZKServiceDecorator(
-        zkServer.getConnectionStr(), 10000, runId, Suppliers.ofInstance(new JsonObject()), new AbstractIdleService() {
+        zkClientService, runId, Suppliers.ofInstance(new JsonObject()), new AbstractIdleService() {
 
         @Override
         protected void startUp() throws Exception {
@@ -64,12 +68,13 @@ public class ControllerTest {
       });
       service.startAndWait();
 
-      final ZKWeaveController controller = new ZKWeaveController(zkServer.getConnectionStr(), 10000, runId,
-                                                                 ImmutableList.<LogHandler>of());
+      final ZKWeaveController controller = new ZKWeaveController(zkClientService, runId, ImmutableList.<LogHandler>of());
       controller.start();
 
       controller.sendCommand(Command.Builder.of("test").build()).get(2, TimeUnit.SECONDS);
       controller.stop().get(2, TimeUnit.SECONDS);
+
+      zkClientService.stopAndWait();
 
     } finally {
       zkServer.stopAndWait();

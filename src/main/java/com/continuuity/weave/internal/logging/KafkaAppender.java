@@ -27,7 +27,12 @@ import com.continuuity.internal.kafka.client.Compression;
 import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.KafkaClient;
 import com.continuuity.kafka.client.PreparePublish;
+import com.continuuity.weave.internal.utils.Services;
 import com.continuuity.weave.internal.utils.Threads;
+import com.continuuity.zookeeper.RetryStrategies;
+import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -63,6 +68,7 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
    */
   private final AtomicInteger bufferedSize;
 
+  private ZKClientService zkClientService;
   private KafkaClient kafkaClient;
   private String zkConnectStr;
   private String hostname;
@@ -126,8 +132,13 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
 
     scheduler = Executors.newSingleThreadScheduledExecutor(Threads.createDaemonThreadFactory("kafka-logger"));
 
-    kafkaClient = new SimpleKafkaClient(zkConnectStr);
-    Futures.addCallback(kafkaClient.start(), new FutureCallback<Object>() {
+    zkClientService = ZKClientServices.delegate(
+                        ZKClients.reWatchOnExpire(
+                          ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnectStr).build(),
+                                                   RetryStrategies.fixDelay(1, TimeUnit.SECONDS))));
+
+    kafkaClient = new SimpleKafkaClient(zkClientService);
+    Futures.addCallback(Services.chainStart(zkClientService, kafkaClient), new FutureCallback<Object>() {
       @Override
       public void onSuccess(Object result) {
         LOG.info("Kafka client started: " + zkConnectStr);
@@ -148,7 +159,7 @@ public final class KafkaAppender extends AppenderBase<ILoggingEvent> {
   @Override
   public void stop() {
     scheduler.shutdownNow();
-    kafkaClient.stopAndWait();
+    Futures.getUnchecked(Services.chainStop(kafkaClient, zkClientService));
     super.stop();
   }
 

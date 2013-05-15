@@ -4,15 +4,14 @@ import com.continuuity.weave.api.AbstractWeaveRunnable;
 import com.continuuity.weave.api.WeaveContext;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -27,17 +26,14 @@ public final class EchoServer extends AbstractWeaveRunnable {
   private volatile Thread runThread;
   private ServerSocket serverSocket;
 
-  public EchoServer(int port) {
-    super(ImmutableMap.of("port", Integer.toString(port)));
-  }
-
   @Override
   public void initialize(WeaveContext context) {
     super.initialize(context);
     running = true;
     try {
-      serverSocket = new ServerSocket(Integer.parseInt(getArgument("port")) + context.getInstanceId());
+      serverSocket = new ServerSocket(0);
       LOG.info("EchoServer started: " + serverSocket.getLocalSocketAddress() + ", id: " + context.getInstanceId());
+      context.announce("echo", serverSocket.getLocalPort());
     } catch (IOException e) {
       throw Throwables.propagate(e);
     }
@@ -49,23 +45,19 @@ public final class EchoServer extends AbstractWeaveRunnable {
       runThread = Thread.currentThread();
       while (running) {
         Socket socket = serverSocket.accept();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), Charsets.UTF_8));
         try {
-          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-          try {
-            String line = reader.readLine();
-            LOG.info("Received: " + line);
-            if (line != null) {
-              writer.write(line);
-            }
-          } finally {
-            writer.close();
+          BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), Charsets.UTF_8));
+          PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+          String line = reader.readLine();
+          LOG.info("Received: " + line);
+          if (line != null) {
+            writer.println(line);
           }
         } finally {
-          reader.close();
+          socket.close();
         }
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.error(e.getMessage(), e);
     }
   }

@@ -23,6 +23,8 @@ import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.internal.utils.Instances;
+import com.continuuity.weave.internal.utils.Threads;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
@@ -35,68 +37,48 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This class act as a yarn container and run a {@link WeaveRunnable}.
  */
 public final class WeaveContainerService implements Service {
 
-  private static final int ZK_TIMEOUT = 10000;    // 10 seconds
   private static final Logger LOG = LoggerFactory.getLogger(WeaveContainerService.class);
 
   private final WeaveRunnableSpecification specification;
   private final ClassLoader classLoader;
+  private final ContainerInfo containerInfo;
   private final WeaveContext context;
   private final ZKServiceDecorator serviceDelegate;
-  private final ContainerInfo containerInfo;
+  private ExecutorService commandExecutor;
   private WeaveRunnable runnable;
 
-  public WeaveContainerService(String zkConnectionStr,
-                               RunId runId,
-                               WeaveRunnableSpecification specification,
-                               ClassLoader classLoader,
-                               final int instanceId,
-                               final String[] args,
-                               final String[] applicationArgs) throws UnknownHostException {
+  public WeaveContainerService(WeaveContext context, ContainerInfo containerInfo, ZKClient zkClient,
+                               RunId runId, WeaveRunnableSpecification specification, ClassLoader classLoader) {
     this.specification = specification;
     this.classLoader = classLoader;
-    this.serviceDelegate = new ZKServiceDecorator(zkConnectionStr, ZK_TIMEOUT, runId,
-                                                  createLiveNodeSupplier(), new ServiceDelegate());
-    this.containerInfo = new ContainerInfo();
-    this.context = new WeaveContext() {
-      @Override
-      public InetAddress getHost() {
-        return containerInfo.getHost();
-      }
-
-      @Override
-      public String[] getArguments() {
-        return args;
-      }
-
-      @Override
-      public String[] getApplicationArguments() {
-        return applicationArgs;
-      }
-
-      @Override
-      public WeaveRunnableSpecification getSpecification() {
-        return WeaveContainerService.this.specification;
-      }
-
-      @Override
-      public int getInstanceId() {
-        return instanceId;
-      }
-    };
+    this.serviceDelegate = new ZKServiceDecorator(zkClient, runId, createLiveNodeSupplier(), new ServiceDelegate());
+    this.context = context;
+    this.containerInfo = containerInfo;
   }
 
-  private ListenableFuture<String> processMessage(String messageId, Message message) {
-    SettableFuture<String> result = SettableFuture.create();
+  private ListenableFuture<String> processMessage(final String messageId, final Message message) {
+    final SettableFuture<String> result = SettableFuture.create();
+    commandExecutor.execute(new Runnable() {
 
+      @Override
+      public void run() {
+        try {
+          runnable.handleCommand(message.getCommand());
+          result.set(messageId);
+        } catch (Exception e) {
+          result.setException(e);
+        }
+      }
+    });
     return result;
   }
 
@@ -114,6 +96,7 @@ public final class WeaveContainerService implements Service {
 
   @Override
   public ListenableFuture<State> start() {
+    commandExecutor = Executors.newSingleThreadExecutor(Threads.createDaemonThreadFactory("runnable-command-executor"));
     return serviceDelegate.start();
   }
 
@@ -134,6 +117,7 @@ public final class WeaveContainerService implements Service {
 
   @Override
   public ListenableFuture<State> stop() {
+    commandExecutor.shutdownNow();
     return serviceDelegate.stop();
   }
 
@@ -176,30 +160,6 @@ public final class WeaveContainerService implements Service {
     @Override
     public ListenableFuture<String> onReceived(String messageId, Message message) {
       return processMessage(messageId, message);
-    }
-  }
-
-  private static final class ContainerInfo {
-    private final String id;
-    private final InetAddress host;
-    private final int port;
-
-    private ContainerInfo() throws UnknownHostException {
-      id = System.getenv(EnvKeys.YARN_CONTAINER_ID);
-      host = InetAddress.getByName(System.getenv(EnvKeys.YARN_CONTAINER_HOST));
-      port = Integer.parseInt(System.getenv(EnvKeys.YARN_CONTAINER_PORT));
-    }
-
-    private String getId() {
-      return id;
-    }
-
-    private InetAddress getHost() {
-      return host;
-    }
-
-    private int getPort() {
-      return port;
     }
   }
 }

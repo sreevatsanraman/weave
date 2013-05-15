@@ -15,7 +15,7 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.weave.internal.api.DefaultResourceSpecification;
+import com.continuuity.weave.internal.DefaultResourceSpecification;
 
 /**
  *
@@ -24,6 +24,9 @@ public interface ResourceSpecification {
 
   final ResourceSpecification BASIC = Builder.with().setCores(1).setMemory(512, SizeUnit.MEGA).build();
 
+  /**
+   * Unit for specifying memory size.
+   */
   enum SizeUnit {
     MEGA(1),
     GIGA(1024);

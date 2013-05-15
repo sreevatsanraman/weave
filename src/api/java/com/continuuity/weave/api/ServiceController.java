@@ -15,7 +15,6 @@
  */
 package com.continuuity.weave.api;
 
-import com.continuuity.weave.api.logging.LogHandler;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.Executor;
@@ -32,16 +31,18 @@ public interface ServiceController {
 
   /**
    * Sends a user command to the running application.
-   * @param command
-   * @return
+   * @param command The command to send.
+   * @return A {@link ListenableFuture} that will be completed when the command is successfully processed
+   *         by the target application.
    */
   ListenableFuture<Command> sendCommand(Command command);
 
   /**
    * Sends a user command to the given runnable of the running application.
-   * @param runnableName
-   * @param command
-   * @return
+   * @param runnableName Name of the {@link WeaveRunnable}.
+   * @param command The command to send.
+   * @return A {@link ListenableFuture} that will be completed when the command is successfully processed
+   *         by the target runnable.
    */
   ListenableFuture<Command> sendCommand(String runnableName, Command command);
 
@@ -56,6 +57,9 @@ public interface ServiceController {
 
   void addListener(Listener listener, Executor executor);
 
+  /**
+   * Represents the service state.
+   */
   enum State {
 
     /**
@@ -86,6 +90,9 @@ public interface ServiceController {
     FAILED
   }
 
+  /**
+   * Listener for listening to service state changes.
+   */
   interface Listener {
 
     void starting();

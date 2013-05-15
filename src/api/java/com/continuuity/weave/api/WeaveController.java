@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.api;
 
+import com.continuuity.discovery.Discoverable;
 import com.continuuity.weave.api.logging.LogHandler;
 
 /**
@@ -27,4 +28,12 @@ public interface WeaveController extends ServiceController {
    * @param handler The handler to add.
    */
   void addLogHandler(LogHandler handler);
+
+  /**
+   * Discovers the set of {@link Discoverable} endpoints that provides service for the given service name.
+   * @param serviceName Name of the service to discovery.
+   * @return An {@link Iterable} that gives set of latest {@link Discoverable} every time when
+   *         {@link Iterable#iterator()}} is invoked.
+   */
+  Iterable<Discoverable> discoverService(String serviceName);
 }

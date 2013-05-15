@@ -5,6 +5,8 @@ import com.continuuity.internal.kafka.client.SimpleKafkaClient;
 import com.continuuity.kafka.client.FetchedMessage;
 import com.continuuity.kafka.client.KafkaClient;
 import com.continuuity.kafka.client.PreparePublish;
+import com.continuuity.weave.internal.utils.Services;
+import com.continuuity.zookeeper.ZKClientService;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
 import junit.framework.Assert;
@@ -23,8 +25,10 @@ public class KafkaTest {
   @Test
   @Ignore
   public void testKafka() throws InterruptedException, ExecutionException {
-    KafkaClient kafkaClient = new SimpleKafkaClient("localhost:2181");
-    kafkaClient.startAndWait();
+    ZKClientService zkClientService = ZKClientService.Builder.of("localhost:2181").build();
+
+    KafkaClient kafkaClient = new SimpleKafkaClient(zkClientService);
+    Services.chainStart(zkClientService, kafkaClient).get();
 
     String topic = "topic" + System.currentTimeMillis();
 
@@ -48,7 +52,7 @@ public class KafkaTest {
 
     Assert.assertEquals(30, count);
 
-    kafkaClient.stopAndWait();
+    Services.chainStop(kafkaClient, zkClientService).get();
   }
 
   private Thread createPublishThread(final KafkaClient kafkaClient, final String topic,

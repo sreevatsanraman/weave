@@ -27,6 +27,7 @@ testrunner {
 dependencies {
   apiCompile libraries.google_guava
   apiCompile libraries.jsr_305
+  apiCompile libraries.zookeeper
 
   compile libraries.asm
   compile libraries.jsr_305

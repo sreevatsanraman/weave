@@ -15,9 +15,10 @@
  */
 package com.continuuity.internal.kafka.client;
 
+import com.continuuity.weave.internal.utils.Threads;
 import com.continuuity.zookeeper.NodeChildren;
 import com.continuuity.zookeeper.NodeData;
-import com.continuuity.zookeeper.ZKClientService;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
@@ -30,7 +31,6 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -54,7 +54,7 @@ final class KafkaBrokerCache extends AbstractIdleService {
 
   private static final String BROKERS_PATH = "/brokers";
 
-  private final ZKClientService zkClient;
+  private final ZKClient zkClient;
   private final Map<String, InetSocketAddress> brokers;
   // topicBrokers is from topic->partition size->brokerId
   private final Map<String, SortedMap<Integer, Set<String>>> topicBrokers;
@@ -71,7 +71,7 @@ final class KafkaBrokerCache extends AbstractIdleService {
     }
   };
 
-  KafkaBrokerCache(ZKClientService zkClient) {
+  KafkaBrokerCache(ZKClient zkClient) {
     this.zkClient = zkClient;
     this.brokers = Maps.newConcurrentMap();
     this.topicBrokers = Maps.newConcurrentMap();
@@ -237,7 +237,7 @@ final class KafkaBrokerCache extends AbstractIdleService {
             }
             topicBrokers.put(topic, ImmutableSortedMap.copyOf(partitionBrokers));
           }
-        }, MoreExecutors.sameThreadExecutor());
+        }, Threads.SAME_THREAD_EXECUTOR);
       }
 
       @Override

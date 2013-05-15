@@ -5,6 +5,7 @@ import com.continuuity.zookeeper.OperationFuture;
 import com.continuuity.zookeeper.RetryStrategies;
 import com.continuuity.zookeeper.ZKClientService;
 import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClients;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
@@ -143,19 +144,19 @@ public class ZKClientTest {
     try {
       final CountDownLatch expireReconnectLatch = new CountDownLatch(1);
       final AtomicBoolean expired = new AtomicBoolean(false);
-      final ZKClientService client = ZKClientServices.reWatchOnExpire(
-        ZKClientService.Builder.of(zkServer.getConnectionStr())
-                               .setSessionTimeout(2000)
-                               .setConnectionWatcher(new Watcher() {
-                                 @Override
-                                 public void process(WatchedEvent event) {
-                                   if (event.getState() == Event.KeeperState.Expired) {
-                                     expired.set(true);
-                                   } else if (event.getState() == Event.KeeperState.SyncConnected && expired.compareAndSet(true, true)) {
-                                     expireReconnectLatch.countDown();
-                                   }
-                                 }
-                               }).build());
+      final ZKClientService client = ZKClientServices.delegate(ZKClients.reWatchOnExpire(
+                                        ZKClientService.Builder.of(zkServer.getConnectionStr())
+                                                       .setSessionTimeout(2000)
+                                                       .setConnectionWatcher(new Watcher() {
+            @Override
+            public void process(WatchedEvent event) {
+              if (event.getState() == Event.KeeperState.Expired) {
+                expired.set(true);
+              } else if (event.getState() == Event.KeeperState.SyncConnected && expired.compareAndSet(true, true)) {
+                expireReconnectLatch.countDown();
+              }
+            }
+          }).build()));
       client.startAndWait();
 
       try {
@@ -193,7 +194,7 @@ public class ZKClientTest {
     int port = zkServer.getLocalAddress().getPort();
 
     final CountDownLatch disconnectLatch = new CountDownLatch(1);
-    ZKClientService client = ZKClientServices.retryOnFailure(
+    ZKClientService client = ZKClientServices.delegate(ZKClients.retryOnFailure(
       ZKClientService.Builder.of(zkServer.getConnectionStr()).setConnectionWatcher(new Watcher() {
       @Override
       public void process(WatchedEvent event) {
@@ -201,7 +202,7 @@ public class ZKClientTest {
           disconnectLatch.countDown();
         }
       }
-    }).build(), RetryStrategies.fixDelay(0, TimeUnit.SECONDS));
+    }).build(), RetryStrategies.fixDelay(0, TimeUnit.SECONDS)));
     client.startAndWait();
 
     zkServer.stopAndWait();

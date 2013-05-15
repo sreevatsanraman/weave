@@ -19,7 +19,7 @@ import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
-import com.continuuity.weave.internal.api.DefaultRuntimeSpecification;
+import com.continuuity.weave.internal.DefaultRuntimeSpecification;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;

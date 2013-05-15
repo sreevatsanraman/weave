@@ -62,7 +62,7 @@ final class SimpleCommand implements Command {
     if (!(obj instanceof Command)) {
       return false;
     }
-    Command other = (Command)obj;
+    Command other = (Command) obj;
     return command.equals(other.getCommand()) && options.equals(other.getOptions());
   }
 }

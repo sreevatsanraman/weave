@@ -19,9 +19,7 @@ import com.continuuity.kafka.client.FetchedMessage;
 import com.continuuity.kafka.client.KafkaClient;
 import com.continuuity.kafka.client.PreparePublish;
 import com.continuuity.weave.internal.utils.Threads;
-import com.continuuity.zookeeper.RetryStrategies;
-import com.continuuity.zookeeper.ZKClientService;
-import com.continuuity.zookeeper.ZKClientServices;
+import com.continuuity.zookeeper.ZKClient;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -59,21 +57,17 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   private static final Logger LOG = LoggerFactory.getLogger(SimpleKafkaClient.class);
   private static final int BROKER_POLL_INTERVAL = 100;
 
-  private final ZKClientService zkClientService;
+  private final ZKClient zkClient;
   private final KafkaBrokerCache brokerCache;
   private ConnectionPool connectionPool;
 
-  public SimpleKafkaClient(String zkConnectStr) {
-    zkClientService = ZKClientServices.reWatchOnExpire(
-                        ZKClientServices.retryOnFailure(
-                          ZKClientService.Builder.of(zkConnectStr).build(),
-                                                     RetryStrategies.fixDelay(1, TimeUnit.SECONDS)));
-    brokerCache = new KafkaBrokerCache(zkClientService);
+  public SimpleKafkaClient(ZKClient zkClient) {
+    this.zkClient = zkClient;
+    this.brokerCache = new KafkaBrokerCache(zkClient);
   }
 
   @Override
   protected void startUp() throws Exception {
-    zkClientService.startAndWait();
     brokerCache.startAndWait();
     ThreadFactory threadFactory = Threads.createDaemonThreadFactory("kafka-client-netty-%d");
     ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
@@ -87,7 +81,6 @@ public final class SimpleKafkaClient extends AbstractIdleService implements Kafk
   protected void shutDown() throws Exception {
     connectionPool.close();
     brokerCache.stopAndWait();
-    zkClientService.stopAndWait();
   }
 
   @Override

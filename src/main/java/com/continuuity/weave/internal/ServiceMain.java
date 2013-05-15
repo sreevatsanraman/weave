@@ -17,6 +17,7 @@ package com.continuuity.weave.internal;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import com.continuuity.weave.internal.utils.Threads;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
@@ -89,7 +90,7 @@ public abstract class ServiceMain {
         LOG.info("Service failure " + serviceName, failure);
         completion.setException(failure);
       }
-    }, MoreExecutors.sameThreadExecutor());
+    }, Threads.SAME_THREAD_EXECUTOR);
 
     // Starts the service
     service.start();

@@ -25,6 +25,7 @@ testrunner {
  * Specify all the dependencies for smartyFacts & main.
  */
 dependencies {
+  apiCompile libraries.google_gson
   apiCompile libraries.google_guava
   apiCompile libraries.jsr_305
   apiCompile libraries.zookeeper

@@ -27,12 +27,17 @@ public final class DefaultLocalFile implements LocalFile {
 
   private final String name;
   private final URI uri;
+  private final long lastModified;
+  private final long size;
   private final boolean archive;
   private final String pattern;
 
-  public DefaultLocalFile(String name, URI uri, boolean archive, @Nullable String pattern) {
+  public DefaultLocalFile(String name, URI uri, long lastModified,
+                          long size, boolean archive, @Nullable String pattern) {
     this.name = name;
     this.uri = uri;
+    this.lastModified = lastModified;
+    this.size = size;
     this.archive = archive;
     this.pattern = pattern;
   }
@@ -45,6 +50,16 @@ public final class DefaultLocalFile implements LocalFile {
   @Override
   public URI getURI() {
     return uri;
+  }
+
+  @Override
+  public long getLastModified() {
+    return lastModified;
+  }
+
+  @Override
+  public long getSize() {
+    return size;
   }
 
   @Override

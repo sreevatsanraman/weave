@@ -27,6 +27,16 @@ public interface LocalFile {
 
   URI getURI();
 
+  /**
+   * Returns the the last modified time of the file or {@code -1} if unknown.
+   */
+  long getLastModified();
+
+  /**
+   * Returns the size of the file or {@code -1} if unknown.
+   */
+  long getSize();
+
   boolean isArchive();
 
   @Nullable

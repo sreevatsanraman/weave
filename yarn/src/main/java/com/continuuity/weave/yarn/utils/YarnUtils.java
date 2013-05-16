@@ -15,6 +15,8 @@
  */
 package com.continuuity.weave.yarn.utils;
 
+import com.continuuity.weave.api.LocalFile;
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -28,14 +30,40 @@ import java.io.File;
  */
 public class YarnUtils {
 
-  public static LocalResource createLocalResource(LocalResourceType type, File file) {
+  public static LocalResource createLocalResource(File file) {
     LocalResource resource = Records.newRecord(LocalResource.class);
     resource.setVisibility(LocalResourceVisibility.APPLICATION);
-    resource.setType(type);
+    resource.setType(LocalResourceType.FILE);
     resource.setResource(ConverterUtils.getYarnUrlFromURI(file.toURI()));
     resource.setTimestamp(file.lastModified());
     resource.setSize(file.length());
     return resource;
+  }
+
+  public static LocalResource createLocalResource(LocalFile localFile) {
+    Preconditions.checkArgument(localFile.getLastModified() >= 0, "Last modified time should be >= 0.");
+    Preconditions.checkArgument(localFile.getSize() >= 0, "File size should be >= 0.");
+
+    LocalResource resource = Records.newRecord(LocalResource.class);
+    resource.setVisibility(LocalResourceVisibility.APPLICATION);
+    resource.setResource(ConverterUtils.getYarnUrlFromURI(localFile.getURI()));
+    resource.setTimestamp(localFile.getLastModified());
+    resource.setSize(localFile.getSize());
+    return setLocalResourceType(resource, localFile);
+  }
+
+  private static LocalResource setLocalResourceType(LocalResource localResource, LocalFile localFile) {
+    if (localFile.isArchive()) {
+      if (localFile.getPattern() == null) {
+        localResource.setType(LocalResourceType.ARCHIVE);
+      } else {
+        localResource.setType(LocalResourceType.PATTERN);
+        localResource.setPattern(localFile.getPattern());
+      }
+    } else {
+      localResource.setType(LocalResourceType.FILE);
+    }
+    return localResource;
   }
 
   private YarnUtils() {

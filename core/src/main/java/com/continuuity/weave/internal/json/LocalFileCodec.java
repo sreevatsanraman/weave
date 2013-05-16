@@ -39,6 +39,8 @@ public final class LocalFileCodec implements JsonSerializer<LocalFile>, JsonDese
 
     json.addProperty("name", src.getName());
     json.addProperty("uri", src.getURI().toASCIIString());
+    json.addProperty("lastModified", src.getLastModified());
+    json.addProperty("size", src.getSize());
     json.addProperty("archive", src.isArchive());
     json.addProperty("pattern", src.getPattern());
 
@@ -52,9 +54,12 @@ public final class LocalFileCodec implements JsonSerializer<LocalFile>, JsonDese
 
     String name = jsonObj.get("name").getAsString();
     URI uri = URI.create(jsonObj.get("uri").getAsString());
+    long lastModified = jsonObj.get("lastModified").getAsLong();
+    long size = jsonObj.get("size").getAsLong();
     boolean archive = jsonObj.get("archive").getAsBoolean();
     JsonElement pattern = jsonObj.get("pattern");
 
-    return new DefaultLocalFile(name, uri, archive, pattern.isJsonNull() ? null : pattern.getAsString());
+    return new DefaultLocalFile(name, uri, lastModified, size,
+                                archive, pattern.isJsonNull() ? null : pattern.getAsString());
   }
 }

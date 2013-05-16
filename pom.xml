@@ -35,9 +35,23 @@
         <module>yarn</module>
     </modules>
 
+    <repositories>
+        <repository>
+            <id>cloudera-releases</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hadoop.version>2.0.4-alpha</hadoop.version>
+        <!--<hadoop.version>2.0.0-cdh4.2.0</hadoop.version>-->
         <surefire.redirectTestOutputToFile>true</surefire.redirectTestOutputToFile>
     </properties>
 
@@ -100,7 +114,7 @@
                     <argLine>-Xmx512m</argLine>
                     <redirectTestOutputToFile>${surefire.redirectTestOutputToFile}</redirectTestOutputToFile>
                     <systemPropertyVariables>
-                        <java.io.tmpdir>${project.build.directory}/surefire-tmp</java.io.tmpdir>
+                        <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -298,6 +312,12 @@
                 <artifactId>hadoop-minicluster</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>

@@ -23,7 +23,10 @@ import com.continuuity.weave.api.WeavePreparer;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.ApplicationBundler;
+import com.continuuity.weave.internal.EnvKeys;
 import com.continuuity.weave.internal.RunIds;
+import com.continuuity.weave.internal.WeaveContainerMain;
+import com.continuuity.weave.internal.ZKWeaveController;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.logging.KafkaAppender;
 import com.continuuity.weave.yarn.utils.YarnUtils;
@@ -46,7 +49,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.YarnClient;
 import org.apache.hadoop.yarn.util.Records;
@@ -221,7 +223,7 @@ final class YarnWeavePreparer implements WeavePreparer {
     final File file = File.createTempFile("appMaster", ",jar");
     bundler.createBundle(file, ApplicationMasterMain.class, KafkaAppender.class);
 
-    localResources.put("appMaster.jar", YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+    localResources.put("appMaster.jar", YarnUtils.createLocalResource(file));
     return getCloseable(file);
   }
 
@@ -240,7 +242,7 @@ final class YarnWeavePreparer implements WeavePreparer {
 
       final File file = File.createTempFile("container", ",jar");
       bundler.createBundle(file, classes);
-      localResources.put("container.jar", YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+      localResources.put("container.jar", YarnUtils.createLocalResource(file));
       return getCloseable(file);
 
     } catch (ClassNotFoundException e) {
@@ -252,7 +254,7 @@ final class YarnWeavePreparer implements WeavePreparer {
     final File file = File.createTempFile("logback-template", ".xml");
     copyFromURI(getClass().getClassLoader().getResource(LOGBACK_TEMPLATE).toURI(), file);
 
-    localResources.put("logback-template.xml", YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+    localResources.put("logback-template.xml", YarnUtils.createLocalResource(file));
     return getCloseable(file);
   }
 
@@ -261,7 +263,7 @@ final class YarnWeavePreparer implements WeavePreparer {
     // Serialize into a local temp file.
     final File file = File.createTempFile("weaveSpec", ".json");
     WeaveSpecificationAdapter.create().toJson(spec, file);
-    localResources.put("weaveSpec.json", YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+    localResources.put("weaveSpec.json", YarnUtils.createLocalResource(file));
 
     // Delete the file when the closeable is invoked.
     return getCloseable(file);
@@ -284,7 +286,7 @@ final class YarnWeavePreparer implements WeavePreparer {
         File tmpFile = copyFromURI(localFile.getURI(), File.createTempFile(localFile.getName(), ".tmp"));
         tmpFiles.add(tmpFile);
         localResources.put(name + "." + localFile.getName(),
-                           YarnUtils.createLocalResource(LocalResourceType.FILE, tmpFile));
+                           YarnUtils.createLocalResource(tmpFile));
       }
     }
 

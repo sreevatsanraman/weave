@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveContext;
@@ -24,8 +24,6 @@ import com.continuuity.weave.common.Services;
 import com.continuuity.weave.common.Threads;
 import com.continuuity.weave.discovery.DiscoveryService;
 import com.continuuity.weave.discovery.ZKDiscoveryService;
-import com.continuuity.weave.internal.RunIds;
-import com.continuuity.weave.internal.ServiceMain;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.zookeeper.RetryStrategies;
 import com.continuuity.weave.zookeeper.ZKClient;
@@ -54,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 public final class WeaveContainerMain extends ServiceMain {
 
   /**
-   * Main method for launching a {@link WeaveContainerService} which runs
+   * Main method for launching a {@link com.continuuity.weave.internal.WeaveContainerService} which runs
    * a {@link com.continuuity.weave.api.WeaveRunnable}.
    */
   public static void main(final String[] args) throws Exception {

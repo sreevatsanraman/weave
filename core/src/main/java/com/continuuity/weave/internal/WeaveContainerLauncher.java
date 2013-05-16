@@ -13,24 +13,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
 import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.ServiceController;
-import com.continuuity.weave.yarn.utils.YarnUtils;
+import com.continuuity.weave.internal.AbstractServiceController;
+import com.continuuity.weave.internal.EnvKeys;
+import com.continuuity.weave.internal.ProcessLauncher;
+import com.continuuity.weave.internal.WeaveContainerMain;
+import com.continuuity.weave.internal.utils.LocalFiles;
 import com.continuuity.weave.zookeeper.ZKClient;
 import com.google.common.collect.ImmutableList;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
 
 import java.io.File;
 
 /**
  *
  */
-final class WeaveContainerLauncher {
+public final class WeaveContainerLauncher {
 
   private final RuntimeSpecification runtimeSpec;
   private final RunId runId;
@@ -40,8 +42,8 @@ final class WeaveContainerLauncher {
   private final int instanceId;
   private ProcessLauncher.ProcessController processController;
 
-  WeaveContainerLauncher(RuntimeSpecification runtimeSpec, RunId runId, ProcessLauncher processLauncher,
-                         ZKClient zkClient, Iterable<String> args, int instanceId) {
+  public WeaveContainerLauncher(RuntimeSpecification runtimeSpec, RunId runId, ProcessLauncher processLauncher,
+                                ZKClient zkClient, Iterable<String> args, int instanceId) {
     this.runtimeSpec = runtimeSpec;
     this.runId = runId;
     this.processLauncher = processLauncher;
@@ -51,7 +53,7 @@ final class WeaveContainerLauncher {
     this.instanceId = instanceId;
   }
 
-  ServiceController start() {
+  public ServiceController start() {
     ProcessLauncher.PrepareLaunchContext.AfterUser afterUser = processLauncher.prepareLaunch()
       .setUser(System.getProperty("user.name"));
 
@@ -64,9 +66,7 @@ final class WeaveContainerLauncher {
 
     for (LocalFile localFile : runtimeSpec.getLocalFiles()) {
       File file = new File(runtimeSpec.getName() + "." + localFile.getName());
-      LocalResource localRsc = setLocalResourceType(localFile,
-                                                    YarnUtils.createLocalResource(LocalResourceType.FILE, file));
-      afterResources = resourcesAdder.add(localFile.getName(), localRsc);
+      afterResources = resourcesAdder.add(localFile.getName(), LocalFiles.create(localFile, file));
     }
 
     processController = afterResources
@@ -84,19 +84,5 @@ final class WeaveContainerLauncher {
       .launch();
 
     return new AbstractServiceController(zkClient, runId){};
-  }
-
-  private LocalResource setLocalResourceType(LocalFile localFile, LocalResource localResource) {
-    if (localFile.isArchive()) {
-      if (localFile.getPattern() == null) {
-        localResource.setType(LocalResourceType.ARCHIVE);
-      } else {
-        localResource.setType(LocalResourceType.PATTERN);
-        localResource.setPattern(localFile.getPattern());
-      }
-    } else {
-      localResource.setType(LocalResourceType.FILE);
-    }
-    return localResource;
   }
 }

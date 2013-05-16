@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 Continuuity,Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -21,26 +21,26 @@ import java.net.UnknownHostException;
 /**
 *
 */
-final class ContainerInfo {
+public final class ContainerInfo {
   private final String id;
   private final InetAddress host;
   private final int port;
 
-  ContainerInfo() throws UnknownHostException {
+  public ContainerInfo() throws UnknownHostException {
     id = System.getenv(EnvKeys.YARN_CONTAINER_ID);
     host = InetAddress.getByName(System.getenv(EnvKeys.YARN_CONTAINER_HOST));
     port = Integer.parseInt(System.getenv(EnvKeys.YARN_CONTAINER_PORT));
   }
 
-  String getId() {
+  public String getId() {
     return id;
   }
 
-  InetAddress getHost() {
+  public InetAddress getHost() {
     return host;
   }
 
-  int getPort() {
+  public int getPort() {
     return port;
   }
 }

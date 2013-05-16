@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
@@ -27,7 +27,7 @@ import java.net.InetSocketAddress;
 /**
  *
  */
-final class BasicWeaveContext implements WeaveContext {
+public final class BasicWeaveContext implements WeaveContext {
 
   private final InetAddress host;
   private final String[] args;
@@ -36,7 +36,7 @@ final class BasicWeaveContext implements WeaveContext {
   private final int instanceId;
   private final DiscoveryService discoveryService;
 
-  BasicWeaveContext(InetAddress host, String[] args, String[] appArgs,
+  public BasicWeaveContext(InetAddress host, String[] args, String[] appArgs,
                     WeaveRunnableSpecification spec, int instanceId, DiscoveryService discoveryService) {
     this.host = host;
     this.args = args;

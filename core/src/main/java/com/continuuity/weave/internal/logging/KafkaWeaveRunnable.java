@@ -13,12 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal.logging;
 
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.WeaveContext;
 import com.continuuity.weave.api.WeaveRunnable;
 import com.continuuity.weave.api.WeaveRunnableSpecification;
+import com.continuuity.weave.internal.EnvKeys;
 import com.continuuity.weave.internal.utils.Networks;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;

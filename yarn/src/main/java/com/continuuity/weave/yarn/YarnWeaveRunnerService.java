@@ -30,6 +30,9 @@ import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.DefaultLocalFile;
 import com.continuuity.weave.internal.DefaultWeaveRunnableSpecification;
 import com.continuuity.weave.internal.DefaultWeaveSpecification;
+import com.continuuity.weave.internal.SingleRunnableApplication;
+import com.continuuity.weave.internal.ZKWeaveController;
+import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
 import com.continuuity.weave.zookeeper.RetryStrategies;
 import com.continuuity.weave.zookeeper.ZKClientService;
 import com.continuuity.weave.zookeeper.ZKClientServices;
@@ -154,7 +157,7 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
           public Collection<LocalFile> getLocalFiles() {
             try {
               URL kafkaArchive = getClass().getClassLoader().getResource(KAFKA_ARCHIVE);
-              LocalFile kafka = new DefaultLocalFile("kafka.tgz", kafkaArchive.toURI(), true, null);
+              LocalFile kafka = new DefaultLocalFile("kafka.tgz", kafkaArchive.toURI(), -1, -1, true, null);
               return ImmutableList.of(kafka);
             } catch (Exception e) {
               throw Throwables.propagate(e);

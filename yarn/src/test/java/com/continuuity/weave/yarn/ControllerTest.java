@@ -20,6 +20,7 @@ import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.WeaveController;
 import com.continuuity.weave.api.logging.LogHandler;
 import com.continuuity.weave.internal.RunIds;
+import com.continuuity.weave.internal.ZKWeaveController;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
 import com.continuuity.weave.internal.zookeeper.InMemoryZKServer;
 import com.continuuity.weave.zookeeper.ZKClientService;

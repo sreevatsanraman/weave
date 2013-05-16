@@ -13,9 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
-import org.apache.hadoop.yarn.api.records.LocalResource;
+import com.continuuity.weave.api.LocalFile;
 
 /**
  *
@@ -43,7 +43,7 @@ public interface ProcessLauncher {
     }
 
     interface ResourcesAdder {
-      MoreResources add(String name, LocalResource resource);
+      MoreResources add(String name, LocalFile localFile);
     }
 
     interface AfterResources {

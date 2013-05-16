@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.continuuity.weave.yarn;
+package com.continuuity.weave.internal;
 
 import com.continuuity.weave.api.Command;
 import com.continuuity.weave.api.RunId;
@@ -61,7 +61,7 @@ public abstract class AbstractServiceController implements ServiceController {
     listenerExecutors = new ListenerExecutors();
   }
 
-  protected void start() {
+  public void start() {
     // Watch for state changes
     ZKOperations.watchData(zkClient, getZKPath("state"), new ZKOperations.DataCallback() {
       @Override

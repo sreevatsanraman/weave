@@ -16,6 +16,7 @@
 package com.continuuity.weave.yarn;
 
 import com.continuuity.weave.api.RunId;
+import com.continuuity.weave.internal.EnvKeys;
 import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.ServiceMain;
 

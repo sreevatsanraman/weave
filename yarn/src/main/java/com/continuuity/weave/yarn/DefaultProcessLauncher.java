@@ -15,6 +15,9 @@
  */
 package com.continuuity.weave.yarn;
 
+import com.continuuity.weave.api.LocalFile;
+import com.continuuity.weave.internal.EnvKeys;
+import com.continuuity.weave.internal.ProcessLauncher;
 import com.continuuity.weave.yarn.utils.YarnUtils;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -31,7 +34,6 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
@@ -125,13 +127,13 @@ final class DefaultProcessLauncher implements ProcessLauncher {
 
       private MoreResourcesImpl() {
         for (File file : defaultLocalFiles) {
-          add(file.getName(), YarnUtils.createLocalResource(LocalResourceType.FILE, file));
+          localResources.put(file.getName(), YarnUtils.createLocalResource(file));
         }
       }
 
       @Override
-      public MoreResources add(String name, LocalResource resource) {
-        localResources.put(name, resource);
+      public MoreResources add(String name, LocalFile localFile) {
+        localResources.put(name, YarnUtils.createLocalResource(localFile));
         return this;
       }
 

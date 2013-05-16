@@ -213,7 +213,7 @@ public interface WeaveSpecification {
 
       @Override
       public MoreFile add(String name, URI uri, boolean archive) {
-        files.add(new DefaultLocalFile(name, uri, archive, null));
+        files.add(new DefaultLocalFile(name, uri, -1, -1, archive, null));
         return this;
       }
 
@@ -224,7 +224,7 @@ public interface WeaveSpecification {
 
       @Override
       public MoreFile add(String name, URI uri, String pattern) {
-        files.add(new DefaultLocalFile(name, uri, true, pattern));
+        files.add(new DefaultLocalFile(name, uri, -1, -1, true, pattern));
         return this;
       }
 

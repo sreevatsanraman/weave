@@ -259,6 +259,15 @@ public class WebApplication implements WeaveApplication {
 }
 </pre>
 
+API Documentation
+==================
+   * [Weave Doc Index](http://continuuity.github.io/weave/apidocs/index.html "Weave Doc Index")
+   * [Weave API](http://continuuity.github.io/weave/apidocs/com/continuuity/weave/api/package-summary.html "Weave API")
+   * [Weave YARN](http://continuuity.github.io/weave/apidocs/com/continuuity/weave/yarn/package-summary.html "Weave YARN")
+   * [Weave Common](http://continuuity.github.io/weave/apidocs/com/continuuity/weave/common/package-summary.html "Weave Common")
+   * [Weave Discovery](http://continuuity.github.io/weave/apidocs/com/continuuity/weave/discovery/package-summary.html "Weave Discovery")
+   * [Weave Zookeeper](http://continuuity.github.io/weave/apidocs/com/continuuity/weave/zookeeper/package-summary.html "Weave Zookeeper")
+
 Community
 =================
 

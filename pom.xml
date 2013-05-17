@@ -50,8 +50,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!--<hadoop.version>2.0.4-alpha</hadoop.version>-->
-        <hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
+        <hadoop.version>2.0.4-alpha</hadoop.version>
         <surefire.redirectTestOutputToFile>true</surefire.redirectTestOutputToFile>
     </properties>
 
@@ -140,6 +139,18 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>cdh</id>
+            <properties>
+                <hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
+            </properties>
+            <build>
+                <finalName>${artifactId}-${version}-cdh</finalName>
+            </build>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
         <dependencies>

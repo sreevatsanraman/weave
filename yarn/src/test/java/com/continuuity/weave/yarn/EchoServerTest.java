@@ -105,7 +105,6 @@ public class EchoServerTest {
 
     runnerService = new YarnWeaveRunnerService(new YarnConfiguration(), zkServer.getConnectionStr() + "/weave",
                                                new LocalLocationFactory(Files.createTempDir()));
-//    runnerService = new YarnWeaveRunnerService(new YarnConfiguration(), "loom-sasha2node2-1.joyent.continuuity.net/weave");
     runnerService.startAndWait();
   }
 

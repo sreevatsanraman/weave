@@ -57,7 +57,7 @@ public final class WeaveContainerMain extends ServiceMain {
    */
   public static void main(final String[] args) throws Exception {
     String zkConnectStr = System.getenv(EnvKeys.WEAVE_ZK_CONNECT);
-    File weaveSpecFile = new File(System.getenv(EnvKeys.WEAVE_SPEC_PATH));
+    File weaveSpecFile = new File("weaveSpec.json");
     RunId appRunId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_APP_RUN_ID));
     RunId runId = RunIds.fromString(System.getenv(EnvKeys.WEAVE_RUN_ID));
     String runnableName = System.getenv(EnvKeys.WEAVE_RUNNABLE_NAME);
@@ -199,6 +199,6 @@ public final class WeaveContainerMain extends ServiceMain {
 
   @Override
   protected File getLogBackTemplate() {
-    return new File(System.getenv(EnvKeys.WEAVE_LOGBACK_PATH));
+    return new File("logback-template.xml");
   }
 }

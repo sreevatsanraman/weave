@@ -19,15 +19,8 @@ import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
 import com.continuuity.weave.api.ServiceController;
-import com.continuuity.weave.internal.AbstractServiceController;
-import com.continuuity.weave.internal.EnvKeys;
-import com.continuuity.weave.internal.ProcessLauncher;
-import com.continuuity.weave.internal.WeaveContainerMain;
-import com.continuuity.weave.internal.utils.LocalFiles;
 import com.continuuity.weave.zookeeper.ZKClient;
 import com.google.common.collect.ImmutableList;
-
-import java.io.File;
 
 /**
  *
@@ -47,7 +40,6 @@ public final class WeaveContainerLauncher {
     this.runtimeSpec = runtimeSpec;
     this.runId = runId;
     this.processLauncher = processLauncher;
-    // TODO: This is hacky to pass around a ZKClient like this
     this.zkClient = zkClient;
     this.args = args;
     this.instanceId = instanceId;
@@ -65,8 +57,7 @@ public final class WeaveContainerLauncher {
     ProcessLauncher.PrepareLaunchContext.ResourcesAdder resourcesAdder = afterUser.withResources();
 
     for (LocalFile localFile : runtimeSpec.getLocalFiles()) {
-      File file = new File(runtimeSpec.getName() + "." + localFile.getName());
-      afterResources = resourcesAdder.add(localFile.getName(), LocalFiles.create(localFile, file));
+      afterResources = resourcesAdder.add(localFile);
     }
 
     processController = afterResources
@@ -77,7 +68,7 @@ public final class WeaveContainerLauncher {
       .withCommands()
         .add("java",
              ImmutableList.<String>builder()
-               .add("-cp").add(System.getenv(EnvKeys.WEAVE_CONTAINER_JAR_PATH))
+               .add("-cp").add("container.jar")
                .add(WeaveContainerMain.class.getName())
                .addAll(args).build().toArray(new String[0]))
       .noOutput().noError()

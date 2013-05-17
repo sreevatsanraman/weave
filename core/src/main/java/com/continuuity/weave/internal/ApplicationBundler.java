@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.internal;
 
+import com.continuuity.weave.common.filesystem.Location;
 import com.continuuity.weave.internal.utils.Dependencies;
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
@@ -27,9 +28,11 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
@@ -71,31 +74,43 @@ public final class ApplicationBundler {
    * The jar will also include all classes and resources under the packages as given as include packages
    * in the constructor.
    *
-   * @param targetFile Where to save the target jar file.
+   * @param target Where to save the target jar file.
    * @param classes Set of classes to start the dependency traversal.
    * @throws IOException
    */
-  public void createBundle(File targetFile, Iterable<Class<?>> classes) throws IOException {
-    final Set<String> entries = Sets.newHashSet();
-    final JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(targetFile));
+  public void createBundle(Location target, Iterable<Class<?>> classes) throws IOException {
+    // Write the jar to local tmp file first
+    File tmpJar = File.createTempFile(target.getName(), ".tmp");
     try {
-      findDependencies(classes, entries, jarOut);
+      Set<String> entries = Sets.newHashSet();
+      JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(tmpJar));
+      try {
+        findDependencies(classes, entries, jarOut);
 
-      // Add all classes under the packages as listed in includePackages
-      for (String pkg : includePackages) {
-        copyPackage(pkg, entries, jarOut);
+        // Add all classes under the packages as listed in includePackages
+        for (String pkg : includePackages) {
+          copyPackage(pkg, entries, jarOut);
+        }
+      } finally {
+        jarOut.close();
+      }
+      // Copy the tmp jar into destination.
+      OutputStream os = new BufferedOutputStream(target.getOutputStream());
+      try {
+        Files.copy(tmpJar, os);
+      } finally {
+        os.close();
       }
     } finally {
-      jarOut.close();
+      tmpJar.delete();
     }
-
   }
 
   /**
-   * Same as calling {@link #createBundle(java.io.File, Iterable)}.
+   * Same as calling {@link #createBundle(Location, Iterable)}.
    */
-  public void createBundle(File targetFile, Class<?> clz, Class<?>...classes) throws IOException {
-    createBundle(targetFile, ImmutableSet.<Class<?>>builder().add(clz).add(classes).build());
+  public void createBundle(Location target, Class<?> clz, Class<?>...classes) throws IOException {
+    createBundle(target, ImmutableSet.<Class<?>>builder().add(clz).add(classes).build());
   }
 
   private void findDependencies(Iterable<Class<?>> classes,

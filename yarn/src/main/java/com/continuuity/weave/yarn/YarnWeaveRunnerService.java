@@ -27,11 +27,13 @@ import com.continuuity.weave.api.WeaveRunnableSpecification;
 import com.continuuity.weave.api.WeaveRunnerService;
 import com.continuuity.weave.api.WeaveSpecification;
 import com.continuuity.weave.api.logging.LogHandler;
+import com.continuuity.weave.common.filesystem.LocationFactory;
 import com.continuuity.weave.internal.DefaultLocalFile;
 import com.continuuity.weave.internal.DefaultWeaveRunnableSpecification;
 import com.continuuity.weave.internal.DefaultWeaveSpecification;
 import com.continuuity.weave.internal.SingleRunnableApplication;
 import com.continuuity.weave.internal.ZKWeaveController;
+import com.continuuity.weave.internal.filesystem.HDFSLocationFactory;
 import com.continuuity.weave.internal.logging.KafkaWeaveRunnable;
 import com.continuuity.weave.zookeeper.RetryStrategies;
 import com.continuuity.weave.zookeeper.ZKClientService;
@@ -42,12 +44,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractIdleService;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.client.YarnClient;
 import org.apache.hadoop.yarn.client.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
@@ -64,17 +68,22 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
 
   private final YarnClient yarnClient;
   private final ZKClientService zkClientService;
+  private final LocationFactory locationFactory;
 
   public YarnWeaveRunnerService(YarnConfiguration config, String zkConnect) {
-    YarnClient client = new YarnClientImpl();
-    client.init(config);
+    try {
+      this.locationFactory = new HDFSLocationFactory(FileSystem.get(config), "/weave");
+      this.yarnClient = getYarnClient(config);
+      this.zkClientService = getZKClientService(zkConnect);
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
+  }
 
-    this.yarnClient = client;
-    this.zkClientService = ZKClientServices.delegate(
-      ZKClients.reWatchOnExpire(
-        ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnect)
-                                   .setSessionTimeout(ZK_TIMEOUT)
-                                   .build(), RetryStrategies.exponentialDelay(100, 2000, TimeUnit.MILLISECONDS))));
+  public YarnWeaveRunnerService(YarnConfiguration config, String zkConnect, LocationFactory locationFactory) {
+    this.locationFactory = locationFactory;
+    this.yarnClient = getYarnClient(config);
+    this.zkClientService = getZKClientService(zkConnect);
   }
 
   @Override
@@ -89,7 +98,7 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
 
   @Override
   public WeavePreparer prepare(WeaveApplication application) {
-    return new YarnWeavePreparer(addKafka(application.configure()), yarnClient, zkClientService);
+    return new YarnWeavePreparer(addKafka(application.configure()), yarnClient, zkClientService, locationFactory);
   }
 
   @Override
@@ -179,5 +188,19 @@ public final class YarnWeaveRunnerService extends AbstractIdleService implements
         return orders.build();
       }
     };
+  }
+
+  private ZKClientService getZKClientService(String zkConnect) {
+    return ZKClientServices.delegate(
+      ZKClients.reWatchOnExpire(
+        ZKClients.retryOnFailure(ZKClientService.Builder.of(zkConnect)
+                                   .setSessionTimeout(ZK_TIMEOUT)
+                                   .build(), RetryStrategies.exponentialDelay(100, 2000, TimeUnit.MILLISECONDS))));
+  }
+
+  private YarnClient getYarnClient(YarnConfiguration config) {
+    YarnClient client = new YarnClientImpl();
+    client.init(config);
+    return client;
   }
 }

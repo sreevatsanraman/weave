@@ -43,7 +43,7 @@ public interface ProcessLauncher {
     }
 
     interface ResourcesAdder {
-      MoreResources add(String name, LocalFile localFile);
+      MoreResources add(LocalFile localFile);
     }
 
     interface AfterResources {

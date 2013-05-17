@@ -15,6 +15,7 @@
  */
 package com.continuuity.weave.yarn;
 
+import com.continuuity.weave.api.LocalFile;
 import com.continuuity.weave.api.ResourceSpecification;
 import com.continuuity.weave.api.RunId;
 import com.continuuity.weave.api.RuntimeSpecification;
@@ -24,10 +25,13 @@ import com.continuuity.weave.internal.EnvKeys;
 import com.continuuity.weave.internal.ProcessLauncher;
 import com.continuuity.weave.internal.RunIds;
 import com.continuuity.weave.internal.WeaveContainerLauncher;
+import com.continuuity.weave.internal.json.LocalFileCodec;
 import com.continuuity.weave.internal.json.WeaveSpecificationAdapter;
 import com.continuuity.weave.internal.state.Message;
 import com.continuuity.weave.internal.state.MessageCallback;
 import com.continuuity.weave.internal.state.ZKServiceDecorator;
+import com.continuuity.weave.internal.yarn.ports.AMRMClient;
+import com.continuuity.weave.internal.yarn.ports.AMRMClientImpl;
 import com.continuuity.weave.zookeeper.RetryStrategies;
 import com.continuuity.weave.zookeeper.ZKClient;
 import com.continuuity.weave.zookeeper.ZKClientService;
@@ -56,6 +60,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -68,8 +73,6 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.client.AMRMClient;
-import org.apache.hadoop.yarn.client.AMRMClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -80,6 +83,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
@@ -178,12 +182,13 @@ public final class ApplicationMasterService implements Service {
     LOG.info("Minimum resource capability: " + minCapability);
 
     // Creates ZK path for runnable and kafka logging service
-    Futures.allAsList(zkClientService.create("/" + runId + "/runnables", null, CreateMode.PERSISTENT),
-                      zkClientService.create("/" + runId + "/kafka", null, CreateMode.PERSISTENT)).get();
+    Futures.allAsList(ImmutableList.of(
+      zkClientService.create("/" + runId + "/runnables", null, CreateMode.PERSISTENT),
+      zkClientService.create("/" + runId + "/kafka", null, CreateMode.PERSISTENT))).get();
   }
 
   private void doStop() throws Exception {
-    Thread.currentThread().interrupted(); // This is just to clear the interrupt flag
+    Thread.interrupted();     // This is just to clear the interrupt flag
 
     LOG.info("Stop application master with spec: " + WeaveSpecificationAdapter.create().toJson(weaveSpec));
 
@@ -293,15 +298,10 @@ public final class ApplicationMasterService implements Service {
       RunId containerRunId = RunIds.fromString(provisionRequest.getBaseRunId().getId() + "-" + instanceId);
       ProcessLauncher processLauncher = new DefaultProcessLauncher(
         container, yarnRPC, yarnConf, getKafkaZKConnect(),
-        ImmutableList.of(
-         weaveSpecFile,
-         createFile(EnvKeys.WEAVE_CONTAINER_JAR_PATH),
-         createFile(EnvKeys.WEAVE_LOGBACK_PATH)),
+        getLocalFiles(),
         ImmutableMap.<String, String>builder()
          .put(EnvKeys.WEAVE_APP_RUN_ID, runId.getId())
          .put(EnvKeys.WEAVE_ZK_CONNECT, zkConnectStr)
-         .put(EnvKeys.WEAVE_SPEC_PATH, System.getenv(EnvKeys.WEAVE_SPEC_PATH))
-         .put(EnvKeys.WEAVE_LOGBACK_PATH, System.getenv(EnvKeys.WEAVE_LOGBACK_PATH))
          .put(EnvKeys.WEAVE_APPLICATION_ARGS, System.getenv(EnvKeys.WEAVE_APPLICATION_ARGS))
          .build()
         );
@@ -321,6 +321,12 @@ public final class ApplicationMasterService implements Service {
         provisioning.poll();
       }
     }
+  }
+
+  private List<LocalFile> getLocalFiles() {
+    return new GsonBuilder().registerTypeAdapter(LocalFile.class, new LocalFileCodec())
+      .create().fromJson(System.getenv(EnvKeys.WEAVE_LOCAL_FILE_SPEC), new TypeToken<List<LocalFile>>() {
+      }.getType());
   }
 
   /**
@@ -376,9 +382,23 @@ public final class ApplicationMasterService implements Service {
   private Resource createCapability(ResourceSpecification resourceSpec) {
     Resource capability = Records.newRecord(Resource.class);
 
-    int cores = Math.max(Math.min(resourceSpec.getCores(), maxCapability.getVirtualCores()),
-                         minCapability.getVirtualCores());
-    capability.setVirtualCores(cores);
+    int cores = resourceSpec.getCores();
+    // The following hack is to workaround the still unstable Resource interface.
+    // With the latest YARN API, it should be like this:
+//    int cores = Math.max(Math.min(resourceSpec.getCores(), maxCapability.getVirtualCores()),
+//                         minCapability.getVirtualCores());
+//    capability.setVirtualCores(cores);
+    try {
+      Method getVirtualCores = Resource.class.getMethod("getVirtualCores");
+      Method setVirtualCores = Resource.class.getMethod("setVirtualCores", int.class);
+
+      cores = Math.max(Math.min(cores, (Integer) getVirtualCores.invoke(maxCapability)),
+                       (Integer) getVirtualCores.invoke(minCapability));
+      setVirtualCores.invoke(capability, cores);
+    } catch (Exception e) {
+      // It's ok to ignore this exception, as it's using older version of API.
+      LOG.info(e.toString(), e);
+    }
 
     int memory = Math.max(Math.min(resourceSpec.getMemorySize(), maxCapability.getMemory()),
                           minCapability.getMemory());

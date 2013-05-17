@@ -41,7 +41,6 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
@@ -57,19 +56,17 @@ final class DefaultProcessLauncher implements ProcessLauncher {
   private final YarnRPC yarnRPC;
   private final YarnConfiguration yarnConf;
   private final String kafkaZKConnect;
-  private final List<File> defaultLocalFiles;
+  private final List<LocalFile> defaultLocalFiles;
   private final Map<String, String> defaultEnv;
 
-  DefaultProcessLauncher(Container container, YarnRPC yarnRPC,
-                         YarnConfiguration yarnConf, String kafkaZKConnect,
-                         Iterable<File> defaultLocalFiles,
-                         Map<String, String> defaultEnv) {
+  DefaultProcessLauncher(Container container, YarnRPC yarnRPC, YarnConfiguration yarnConf, String kafkaZKConnect,
+                         Iterable<LocalFile> defaultLocalFiles, Map<String, String> defaultEnv) {
     this.container = container;
     this.yarnRPC = yarnRPC;
     this.yarnConf = yarnConf;
     this.kafkaZKConnect = kafkaZKConnect;
-    this.defaultLocalFiles = ImmutableList.copyOf(defaultLocalFiles);
     this.defaultEnv = ImmutableMap.copyOf(defaultEnv);
+    this.defaultLocalFiles = ImmutableList.copyOf(defaultLocalFiles);
   }
 
   @Override
@@ -126,14 +123,14 @@ final class DefaultProcessLauncher implements ProcessLauncher {
     private final class MoreResourcesImpl implements MoreResources {
 
       private MoreResourcesImpl() {
-        for (File file : defaultLocalFiles) {
-          localResources.put(file.getName(), YarnUtils.createLocalResource(file));
+        for (LocalFile localFile : defaultLocalFiles) {
+          add(localFile);
         }
       }
 
       @Override
-      public MoreResources add(String name, LocalFile localFile) {
-        localResources.put(name, YarnUtils.createLocalResource(localFile));
+      public MoreResources add(LocalFile localFile) {
+        localResources.put(localFile.getName(), YarnUtils.createLocalResource(localFile));
         return this;
       }
 

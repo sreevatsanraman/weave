@@ -16,28 +16,34 @@
 package com.continuuity.weave.yarn.utils;
 
 import com.continuuity.weave.api.LocalFile;
+import com.continuuity.weave.common.filesystem.Location;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
-import java.io.File;
+import java.io.IOException;
 
 /**
  * Collection of helper methods to simplify YARN calls.
  */
 public class YarnUtils {
 
-  public static LocalResource createLocalResource(File file) {
-    LocalResource resource = Records.newRecord(LocalResource.class);
-    resource.setVisibility(LocalResourceVisibility.APPLICATION);
-    resource.setType(LocalResourceType.FILE);
-    resource.setResource(ConverterUtils.getYarnUrlFromURI(file.toURI()));
-    resource.setTimestamp(file.lastModified());
-    resource.setSize(file.length());
-    return resource;
+  public static LocalResource createLocalResource(Location location) {
+    try {
+      LocalResource resource = Records.newRecord(LocalResource.class);
+      resource.setVisibility(LocalResourceVisibility.APPLICATION);
+      resource.setType(LocalResourceType.FILE);
+      resource.setResource(ConverterUtils.getYarnUrlFromURI(location.toURI()));
+      resource.setTimestamp(location.lastModified());
+      resource.setSize(location.length());
+      return resource;
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
   }
 
   public static LocalResource createLocalResource(LocalFile localFile) {

@@ -196,6 +196,9 @@ final class YarnWeavePreparer implements WeavePreparer {
       resourceCleaner.add(createLogBackTemplate(localResources));
       resourceCleaner.add(populateRunnableResources(weaveSpec, transformedLocalFiles));
       resourceCleaner.add(saveWeaveSpec(weaveSpec, transformedLocalFiles, localResources));
+      resourceCleaner.add(saveLocalFiles(localResources, ImmutableSet.of("weaveSpec.json",
+                                                                         "container.jar",
+                                                                         "logback-template.xml")));
 
       ContainerLaunchContext containerLaunchContext = Records.newRecord(ContainerLaunchContext.class);
       containerLaunchContext.setLocalResources(localResources);
@@ -206,11 +209,6 @@ final class YarnWeavePreparer implements WeavePreparer {
 
       containerLaunchContext.setEnvironment(ImmutableMap.<String, String>builder()
         .put(EnvKeys.WEAVE_ZK_CONNECT, zkClient.getConnectString())
-        .put(EnvKeys.WEAVE_LOCAL_FILE_SPEC, getLocalFileSpec(
-          Maps.filterKeys(localResources, Predicates.in(ImmutableSet.of(
-                                                        "weaveSpec.json",
-                                                        "container.jar",
-                                                        "logback-template.xml")))))
         .put(EnvKeys.WEAVE_APPLICATION_ARGS, encodeArguments(arguments))
         .put(EnvKeys.WEAVE_RUNNABLE_ARGS, encodeRunnableArguments(runnableArgs))
         .put(EnvKeys.WEAVE_RUN_ID, runId.getId())
@@ -226,32 +224,6 @@ final class YarnWeavePreparer implements WeavePreparer {
 
       return createController(runId, logHandlers);
     } catch (Exception e) {
-      throw Throwables.propagate(e);
-    }
-  }
-
-  private String getLocalFileSpec(Map<String, LocalResource> localResources) {
-    Map<String, LocalFile> localFiles = Maps.transformEntries(
-      localResources, new Maps.EntryTransformer<String, LocalResource, LocalFile>() {
-      @Override
-      public LocalFile transformEntry(String key, LocalResource value) {
-        try {
-          return new DefaultLocalFile(key, ConverterUtils.getPathFromYarnURL(value.getResource()).toUri(),
-                                      value.getTimestamp(), value.getSize(),
-                                      value.getType() != LocalResourceType.FILE, value.getPattern());
-        } catch (URISyntaxException e) {
-          throw Throwables.propagate(e);
-        }
-      }
-    });
-    return new GsonBuilder().registerTypeAdapter(LocalFile.class, new LocalFileCodec())
-      .create().toJson(localFiles.values(), new TypeToken<List<LocalFile>>(){}.getType());
-  }
-
-  private String getLocalResourceURI(LocalResource localResource) {
-    try {
-      return ConverterUtils.getPathFromYarnURL(localResource.getResource()).toUri().toASCIIString();
-    } catch (URISyntaxException e) {
       throw Throwables.propagate(e);
     }
   }
@@ -333,7 +305,9 @@ final class YarnWeavePreparer implements WeavePreparer {
       String name = entry.getKey();
       for (LocalFile localFile : entry.getValue().getLocalFiles()) {
         LOG.debug("Create and copy {} : {}", name, localFile.getURI());
-        Location location = copyFromURI(localFile.getURI(), createTempLocation(localFile.getName(), null));
+        // Temp file suffix is repeat the file name again to make sure it preserves the original suffix for expansion.
+        Location location = copyFromURI(localFile.getURI(),
+                                        createTempLocation(localFile.getName(), localFile.getName()));
         LOG.debug("Done {} : {}", name, localFile.getURI());
 
         tmpLocations.add(location);
@@ -388,6 +362,36 @@ final class YarnWeavePreparer implements WeavePreparer {
     localResources.put("weaveSpec.json", YarnUtils.createLocalResource(location));
 
     // Delete the file when the closeable is invoked.
+    return getCloseable(location);
+  }
+
+  private Closeable saveLocalFiles(Map<String, LocalResource> localResources, Set<String> keys) throws IOException {
+    Map<String, LocalFile> localFiles = Maps.transformEntries(
+      Maps.filterKeys(localResources, Predicates.in(keys)),
+      new Maps.EntryTransformer<String, LocalResource, LocalFile>() {
+      @Override
+      public LocalFile transformEntry(String key, LocalResource value) {
+        try {
+          return new DefaultLocalFile(key, ConverterUtils.getPathFromYarnURL(value.getResource()).toUri(),
+                                      value.getTimestamp(), value.getSize(),
+                                      value.getType() != LocalResourceType.FILE, value.getPattern());
+        } catch (URISyntaxException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    });
+
+    LOG.debug("Create and copy localFiles.json");
+    Location location = createTempLocation("localFiles", ".json");
+    Writer writer = new OutputStreamWriter(location.getOutputStream(), Charsets.UTF_8);
+    try {
+      new GsonBuilder().registerTypeAdapter(LocalFile.class, new LocalFileCodec())
+        .create().toJson(localFiles.values(), new TypeToken<List<LocalFile>>(){}.getType(), writer);
+    } finally {
+      writer.close();
+    }
+    LOG.debug("Done localFiles.json");
+    localResources.put("localFiles.json", YarnUtils.createLocalResource(location));
     return getCloseable(location);
   }
 

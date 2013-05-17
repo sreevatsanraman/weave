@@ -31,7 +31,7 @@ public interface Location {
   /**
    * Suffix added to every temp file name generated with {@link #getTempFile(String)}.
    */
-  public static final String TEMP_FILE_SUFFIX = ".TEMP_FILE";
+  static final String TEMP_FILE_SUFFIX = ".tmp";
 
   /**
    * Checks if the this location exists.

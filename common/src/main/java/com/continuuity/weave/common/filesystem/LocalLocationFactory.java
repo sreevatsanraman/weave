@@ -23,9 +23,15 @@ import java.net.URI;
  */
 public final class LocalLocationFactory implements LocationFactory {
 
+  private final File basePath;
+
+  public LocalLocationFactory(File basePath) {
+    this.basePath = basePath;
+  }
+
   @Override
   public Location create(String path) {
-    return new LocalLocation(new File(path));
+    return new LocalLocation(new File(basePath, path));
   }
 
   @Override

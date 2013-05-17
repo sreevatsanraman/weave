@@ -60,6 +60,6 @@ public final class LocalFileCodec implements JsonSerializer<LocalFile>, JsonDese
     JsonElement pattern = jsonObj.get("pattern");
 
     return new DefaultLocalFile(name, uri, lastModified, size,
-                                archive, pattern.isJsonNull() ? null : pattern.getAsString());
+                                archive, (pattern == null || pattern.isJsonNull()) ? null : pattern.getAsString());
   }
 }

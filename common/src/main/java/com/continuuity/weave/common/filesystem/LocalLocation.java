@@ -56,6 +56,10 @@ final class LocalLocation implements Location {
    */
   @Override
   public InputStream getInputStream() throws IOException {
+    File parent = file.getParentFile();
+    if (!parent.exists()) {
+      parent.mkdirs();
+    }
     return new FileInputStream(file);
   }
 
@@ -65,6 +69,10 @@ final class LocalLocation implements Location {
    */
   @Override
   public OutputStream getOutputStream() throws IOException {
+    File parent = file.getParentFile();
+    if (!parent.exists()) {
+      parent.mkdirs();
+    }
     return new FileOutputStream(file);
   }
 

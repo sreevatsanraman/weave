@@ -37,8 +37,10 @@ import com.continuuity.weave.zookeeper.ZKClient;
 import com.continuuity.weave.zookeeper.ZKClientService;
 import com.continuuity.weave.zookeeper.ZKClientServices;
 import com.continuuity.weave.zookeeper.ZKClients;
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -52,6 +54,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
+import com.google.common.io.Files;
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.AsyncFunction;
@@ -83,6 +86,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Deque;
@@ -324,9 +328,17 @@ public final class ApplicationMasterService implements Service {
   }
 
   private List<LocalFile> getLocalFiles() {
-    return new GsonBuilder().registerTypeAdapter(LocalFile.class, new LocalFileCodec())
-      .create().fromJson(System.getenv(EnvKeys.WEAVE_LOCAL_FILE_SPEC), new TypeToken<List<LocalFile>>() {
-      }.getType());
+    try {
+      Reader reader = Files.newReader(new File("localFiles.json"), Charsets.UTF_8);
+      try {
+        return new GsonBuilder().registerTypeAdapter(LocalFile.class, new LocalFileCodec())
+                                .create().fromJson(reader, new TypeToken<List<LocalFile>>() {}.getType());
+      } finally {
+        reader.close();
+      }
+    } catch (IOException e) {
+      throw Throwables.propagate(e);
+    }
   }
 
   /**

@@ -98,7 +98,6 @@ public final class KafkaWeaveRunnable implements WeaveRunnable {
 
   private ClassLoader getClassLoader(File kafkaDir) throws MalformedURLException {
     String[] cp = new String[]{
-      "project/boot/scala-2.8.0/lib/scala-compiler.jar",
       "project/boot/scala-2.8.0/lib/scala-library.jar",
       "core/target/scala_2.8.0/kafka-0.7.2.jar",
       "perf/target/scala_2.8.0/kafka-perf-0.7.2.jar",

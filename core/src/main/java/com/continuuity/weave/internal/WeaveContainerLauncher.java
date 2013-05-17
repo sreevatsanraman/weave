@@ -45,7 +45,7 @@ public final class WeaveContainerLauncher {
     this.instanceId = instanceId;
   }
 
-  public ServiceController start() {
+  public ServiceController start(String stdout, String stderr) {
     ProcessLauncher.PrepareLaunchContext.AfterUser afterUser = processLauncher.prepareLaunch()
       .setUser(System.getProperty("user.name"));
 
@@ -60,6 +60,8 @@ public final class WeaveContainerLauncher {
       afterResources = resourcesAdder.add(localFile);
     }
 
+    int memory = runtimeSpec.getResourceSpecification().getMemorySize();
+
     processController = afterResources
       .withEnvironment()
         .add(EnvKeys.WEAVE_RUN_ID, runId.getId())
@@ -69,9 +71,10 @@ public final class WeaveContainerLauncher {
         .add("java",
              ImmutableList.<String>builder()
                .add("-cp").add("container.jar")
+               .add("-Xmx" + memory + "m")
                .add(WeaveContainerMain.class.getName())
                .addAll(args).build().toArray(new String[0]))
-      .noOutput().noError()
+      .redirectOutput(stdout).redirectError(stderr)
       .launch();
 
     return new AbstractServiceController(zkClient, runId){};

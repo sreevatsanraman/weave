@@ -56,6 +56,7 @@ import com.google.common.io.ByteStreams;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -89,6 +90,7 @@ final class YarnWeavePreparer implements WeavePreparer {
 
   private static final Logger LOG = LoggerFactory.getLogger(YarnWeavePreparer.class);
   private static final String LOGBACK_TEMPLATE = "logback-template.xml";
+  private static final int APP_MASTER_MEMORY_MB = 256;
 
   private final WeaveSpecification weaveSpec;
   private final YarnClient yarnClient;
@@ -204,7 +206,12 @@ final class YarnWeavePreparer implements WeavePreparer {
       containerLaunchContext.setLocalResources(localResources);
 
       containerLaunchContext.setCommands(ImmutableList.of(
-        "java", "-cp", "appMaster.jar", ApplicationMasterMain.class.getName()
+        "java",
+        "-cp", "appMaster.jar:$HADOOP_CONF_DIR",
+        "-Xmx" + APP_MASTER_MEMORY_MB + "m",
+        ApplicationMasterMain.class.getName(),
+        " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout",
+        " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"
       ));
 
       containerLaunchContext.setEnvironment(ImmutableMap.<String, String>builder()
@@ -215,7 +222,7 @@ final class YarnWeavePreparer implements WeavePreparer {
         .build()
       );
       Resource capability = Records.newRecord(Resource.class);
-      capability.setMemory(256);
+      capability.setMemory(APP_MASTER_MEMORY_MB);
       containerLaunchContext.setResource(capability);
 
       appSubmissionContext.setAMContainerSpec(containerLaunchContext);

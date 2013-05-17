@@ -318,7 +318,9 @@ public final class ApplicationMasterService implements Service {
                                                                                        getZKNamespace(runnableName)),
                                                                    runnableArgs.get(runnableName),
                                                                    instanceId);
-      runningContainers.add(runnableName, container, launcher.start());
+      runningContainers.add(runnableName, container,
+                            launcher.start(ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout",
+                                           ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"));
 
       if (runningContainers.count(runnableName) == containerCount) {
         LOG.info("Runnable " + runnableName + " fully provisioned with " + containerCount + " instances.");

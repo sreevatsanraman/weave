@@ -65,6 +65,10 @@
             <id>gh-pages</id>
             <url>http://continuuity.github.com/weave/</url>
         </site>
+        <repository>
+            <id>continuuity</id>
+            <url>https://repository.continuuity.com/content/repositories/snapshots</url>
+        </repository>
     </distributionManagement>
 
     <build>
@@ -135,6 +139,31 @@
                     <systemPropertyVariables>
                         <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
                     </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serverId>continuuity</serverId>
+                    <nexusUrl>https://repository.continuuity.com/content/repositories/snapshots</nexusUrl>
                 </configuration>
             </plugin>
         </plugins>
